@@ -14,10 +14,6 @@ pub struct Set {
 }
 
 impl Set {
-    pub fn parse_optional(input: ParseStream) -> syn::Result<Option<Self>> {
-        Self::peek(input).then(|| input.parse()).transpose()
-    }
-
     pub fn peek(input: ParseStream) -> bool {
         input.peek(keyword::set)
     }

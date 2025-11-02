@@ -40,7 +40,7 @@ impl<'a> CommandTree<'a> {
         COMMAND_TREE.with_borrow_mut(|option| *option = None);
     }
 
-    pub fn with(f: impl FnOnce(&CommandTree<'_>)) {
+    pub fn with<R>(f: impl FnOnce(&CommandTree<'_>) -> R) -> R {
         COMMAND_TREE.with_borrow(|command_tree| match command_tree {
             Some(command_tree) => f(command_tree),
             None => panic!("used `CommandTree::with` outside command tree scope"),

@@ -1,5 +1,4 @@
-use std::cell::RefCell;
-
+use proc_macro_error::OptionExt;
 use proc_macro2::TokenStream;
 use quote::{ToTokens, quote};
 use syn::{Ident, Path};
@@ -10,22 +9,12 @@ use crate::{
     path_ext::PathExt,
 };
 
-thread_local! {
-    static SCOPE_CHAIN: RefCell<Vec<Scope>> = const { RefCell::new(Vec::new()) };
-}
-
 #[derive(Default, Clone)]
 pub struct Scope {
     tables: Vec<ScopeTable>,
 }
 
 impl Scope {
-    pub fn to_tokens<'a, F>(from_items: impl IntoIterator<Item = &'a clause::FromItem>, f: F)
-    where
-        F: FnOnce(),
-    {
-    }
-
     pub fn new<'a>(from_items: impl IntoIterator<Item = &'a clause::FromItem>) -> Self {
         let mut tables = vec![];
         for from_item in from_items {
@@ -56,7 +45,7 @@ impl Scope {
                             tables.push(ScopeTable::Existing(table.clone()));
                         }
                     },
-                    FromItem::Subquery { select, alias, .. } => {
+                    FromItem::Subquery { command, alias, .. } => {
                         if let Some(alias) = alias {
                             if let Some(columns) = &alias.columns {
                                 tables.push(ScopeTable::Custom {
@@ -66,9 +55,9 @@ impl Scope {
                             } else {
                                 tables.push(ScopeTable::Custom {
                                     correlation: alias.name.clone(),
-                                    columns: select
-                                        .select
-                                        .fields
+                                    columns: command
+                                        .fields()
+                                        .expect_or_abort("subquery must have return fields")
                                         .iter()
                                         .filter_map(|field| field.infer_name().cloned())
                                         .collect(),

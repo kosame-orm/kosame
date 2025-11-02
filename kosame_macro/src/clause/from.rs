@@ -6,7 +6,7 @@ use syn::{
 };
 
 use crate::{
-    command::Select, expr::Expr, keyword, part::TableAlias, path_ext::PathExt,
+    command::Command, expr::Expr, keyword, part::TableAlias, path_ext::PathExt,
     quote_option::QuoteOption, visitor::Visitor,
 };
 
@@ -133,7 +133,7 @@ pub enum FromItem {
     Subquery {
         lateral_keyword: Option<keyword::lateral>,
         _paren_token: syn::token::Paren,
-        select: Box<Select>,
+        command: Box<Command>,
         alias: Option<TableAlias>,
     },
     Join {
@@ -168,7 +168,7 @@ impl FromItem {
             Ok(Self::Subquery {
                 lateral_keyword,
                 _paren_token: parenthesized!(content in input),
-                select: content.parse()?,
+                command: content.parse()?,
                 alias: input.call(TableAlias::parse_optional)?,
             })
         } else if lookahead.peek(Ident) {
@@ -186,8 +186,8 @@ impl FromItem {
             Self::Table { table, .. } => {
                 visitor.visit_table_ref(table);
             }
-            Self::Subquery { select, .. } => {
-                select.accept(visitor);
+            Self::Subquery { command, .. } => {
+                command.accept(visitor);
             }
             Self::Join {
                 left, right, on, ..
@@ -258,7 +258,7 @@ impl ToTokens for FromItem {
             }
             Self::Subquery {
                 lateral_keyword: _lateral_keyword,
-                select,
+                command,
                 alias,
                 ..
             } => {
@@ -267,7 +267,7 @@ impl ToTokens for FromItem {
                 quote! {
                     ::kosame::repr::clause::FromItem::Subquery {
                         lateral: #lateral,
-                        select: &#select,
+                        command: &#command,
                         alias: #alias,
                     }
                 }
