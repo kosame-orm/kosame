@@ -19,6 +19,7 @@ use crate::{
     clause::{Fields, With},
     keyword,
     quote_option::QuoteOption,
+    statement::CommandTree,
     visitor::Visitor,
 };
 
@@ -30,21 +31,18 @@ pub struct Command {
 
 impl Command {
     pub fn accept<'a>(&'a self, visitor: &mut impl Visitor<'a>) {
-        if let Some(inner) = &self.with {
-            inner.accept(visitor)
+        visitor.visit_command(self);
+        {
+            if let Some(inner) = &self.with {
+                inner.accept(visitor)
+            }
+            self.command_type.accept(visitor);
         }
-        self.command_type.accept(visitor);
+        visitor.end_command();
     }
 
     pub fn fields(&self) -> Option<&Fields> {
         self.command_type.fields()
-    }
-
-    pub fn scoped(&self, f: impl FnOnce()) {
-        match &self.with {
-            Some(with) => with.scoped(f),
-            None => f(),
-        }
     }
 }
 
@@ -60,21 +58,14 @@ impl Parse for Command {
 
 impl ToTokens for Command {
     fn to_tokens(&self, tokens: &mut TokenStream) {
-        let with = QuoteOption::from(&self.with);
-        let command_type = &self.command_type;
-        if let Some(with) = &self.with {
-            with.scoped(|| {
-                quote! {
-                    ::kosame::repr::command::Command::new(#with, #command_type)
-                }
-                .to_tokens(tokens);
+        CommandTree::with(|command_tree| {
+            command_tree.command_scope(self, || {
+                let with = QuoteOption::from(&self.with);
+                let command_type = &self.command_type;
+                quote! { ::kosame::repr::command::Command::new(#with, #command_type) }
+                    .to_tokens(tokens);
             });
-        } else {
-            quote! {
-                ::kosame::repr::command::Command::new(#with, #command_type)
-            }
-            .to_tokens(tokens);
-        }
+        });
     }
 }
 
