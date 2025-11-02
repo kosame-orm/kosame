@@ -63,8 +63,8 @@ impl ToTokens for With {
 
 pub struct WithItem {
     pub alias: TableAlias,
-    pub as_token: Token![as],
-    pub paren_token: syn::token::Paren,
+    pub _as_token: Token![as],
+    pub _paren_token: syn::token::Paren,
     pub command: Command,
 }
 
@@ -79,8 +79,8 @@ impl Parse for WithItem {
         let content;
         Ok(Self {
             alias: input.parse()?,
-            as_token: input.parse()?,
-            paren_token: parenthesized!(content in input),
+            _as_token: input.parse()?,
+            _paren_token: parenthesized!(content in input),
             command: content.parse()?,
         })
     }

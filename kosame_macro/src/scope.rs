@@ -10,12 +10,22 @@ use crate::{
     path_ext::PathExt,
 };
 
+thread_local! {
+    static SCOPE_CHAIN: RefCell<Vec<Scope>> = const { RefCell::new(Vec::new()) };
+}
+
 #[derive(Default, Clone)]
 pub struct Scope {
     tables: Vec<ScopeTable>,
 }
 
 impl Scope {
+    pub fn to_tokens<'a, F>(from_items: impl IntoIterator<Item = &'a clause::FromItem>, f: F)
+    where
+        F: FnOnce(),
+    {
+    }
+
     pub fn new<'a>(from_items: impl IntoIterator<Item = &'a clause::FromItem>) -> Self {
         let mut tables = vec![];
         for from_item in from_items {
@@ -88,31 +98,25 @@ impl Scope {
 
 impl ToTokens for Scope {
     fn to_tokens(&self, tokens: &mut TokenStream) {
-        PARENT.with_borrow(|parent| {
-            let tables = &self.tables;
-            let columns = self.tables.iter().map(|table| {
-                let name = table.name();
-                quote! {
-                    pub use super::tables::#name::columns::*;
-                }
-            });
+        let tables = &self.tables;
+        let columns = self.tables.iter().map(|table| {
+            let name = table.name();
             quote! {
-                mod scope {
-                    pub mod tables {
-                        #(#tables)*
-                    }
-                    pub mod columns {
-                        #(#columns)*
-                    }
+                pub use super::tables::#name::columns::*;
+            }
+        });
+        quote! {
+            mod scope {
+                pub mod tables {
+                    #(#tables)*
+                }
+                pub mod columns {
+                    #(#columns)*
                 }
             }
-            .to_tokens(tokens);
-        })
+        }
+        .to_tokens(tokens);
     }
-}
-
-thread_local! {
-    static PARENT: RefCell<Option<Scope>> = const { RefCell::new(None) };
 }
 
 #[derive(Clone)]
