@@ -6,7 +6,7 @@ use syn::{
 };
 
 use crate::{
-    clause::*, keyword, path_ext::PathExt, quote_option::QuoteOption, scope::Scope,
+    clause::*, keyword, path_ext::PathExt, quote_option::QuoteOption, scope_module::ScopeModule,
     visitor::Visitor,
 };
 
@@ -58,7 +58,7 @@ impl ToTokens for Delete {
         let r#where = QuoteOption(self.r#where.as_ref());
         let returning = QuoteOption(self.returning.as_ref());
 
-        let scope = Scope::new(
+        let scope = ScopeModule::new(
             std::iter::once(&FromItem::Table {
                 table: self.table.clone(),
                 alias: None,

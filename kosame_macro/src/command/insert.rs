@@ -6,7 +6,7 @@ use syn::{
 };
 
 use crate::{
-    clause::*, keyword, path_ext::PathExt, quote_option::QuoteOption, scope::Scope,
+    clause::*, keyword, path_ext::PathExt, quote_option::QuoteOption, scope_module::ScopeModule,
     visitor::Visitor,
 };
 
@@ -50,7 +50,7 @@ impl ToTokens for Insert {
         let values = &self.values;
         let returning = QuoteOption(self.returning.as_ref());
 
-        let scope = Scope::new(std::iter::once(&FromItem::Table {
+        let scope = ScopeModule::new(std::iter::once(&FromItem::Table {
             table: self.table.clone(),
             alias: None,
         }));

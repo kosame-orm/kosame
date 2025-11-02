@@ -14,7 +14,7 @@ mod query;
 mod quote_option;
 mod row;
 mod schema;
-mod scope;
+mod scope_module;
 mod statement;
 mod table_refs;
 mod type_override;

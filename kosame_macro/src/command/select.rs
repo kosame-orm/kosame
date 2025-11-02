@@ -8,7 +8,7 @@ use syn::{
 use crate::{
     clause::{self, From, GroupBy, Having, Limit, Offset, OrderBy, Where, With},
     quote_option::QuoteOption,
-    scope::Scope,
+    scope_module::ScopeModule,
     visitor::Visitor,
 };
 
@@ -80,7 +80,7 @@ impl ToTokens for Select {
         let limit = QuoteOption(self.limit.as_ref());
         let offset = QuoteOption(self.offset.as_ref());
 
-        let scope = Scope::new(self.from.as_ref().map(|from| &from.item));
+        let scope = ScopeModule::new(self.from.as_ref().map(|from| &from.item));
 
         quote! {
             {
