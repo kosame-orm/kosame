@@ -17,7 +17,6 @@ mod schema;
 mod scope_module;
 mod statement;
 mod table_refs;
-mod type_override;
 mod unique_macro;
 mod visitor;
 

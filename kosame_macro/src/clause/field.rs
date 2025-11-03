@@ -8,8 +8,13 @@ use syn::{
 };
 
 use crate::{
-    clause::peek_clause, data_type::InferredType, expr::Expr, part::Alias,
-    quote_option::QuoteOption, row::RowField, type_override::TypeOverride, visitor::Visitor,
+    clause::peek_clause,
+    data_type::InferredType,
+    expr::Expr,
+    part::{Alias, TypeOverride},
+    quote_option::QuoteOption,
+    row::RowField,
+    visitor::Visitor,
 };
 
 pub struct Field {
