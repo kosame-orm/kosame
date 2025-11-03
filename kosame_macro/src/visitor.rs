@@ -20,3 +20,12 @@ pub trait Visitor<'a> {
     fn visit_with_item(&mut self, _with_item: &'a WithItem) {}
     fn end_with_item(&mut self) {}
 }
+
+impl<'a, T> Visitor<'a> for T
+where
+    T: FnMut(&'a Path),
+{
+    fn visit_table_ref(&mut self, table_ref: &'a Path) {
+        self(table_ref)
+    }
+}

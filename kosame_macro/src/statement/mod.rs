@@ -1,7 +1,9 @@
+use std::collections::HashSet;
+
 use proc_macro2::{Span, TokenStream};
 use quote::{ToTokens, quote};
 use syn::{
-    Attribute, Ident, parenthesized,
+    Attribute, Ident, Path, parenthesized,
     parse::{Parse, ParseStream},
 };
 
@@ -12,7 +14,6 @@ use crate::{
     parent_map::ParentMapBuilder,
     part::Alias,
     row::Row,
-    table_refs::TableRefs,
     visitor::Visitor,
 };
 
@@ -69,6 +70,16 @@ impl ToTokens for Statement {
     fn to_tokens(&self, tokens: &mut TokenStream) {
         // Prepass to get table schemas
         let custom_meta = self.custom_meta();
+
+        fn collect_table_refs<'a>(statement: &'a Statement) -> HashSet<&'a Path> {
+            let mut table_refs = HashSet::<&'a Path>::new();
+            statement.accept(&mut |path: &'a Path| {
+                table_refs.insert(path);
+            });
+            table_refs
+        }
+        let table_refs = collect_table_refs(self);
+
         // if custom_meta.pass == 0 {
         //     let mut table_refs = TableRefs::new();
         //     self.accept(&mut table_refs);
