@@ -121,6 +121,7 @@ impl CommandType {
         }
     }
 
+    #[allow(clippy::wrong_self_convention)]
     pub fn from_item(&self) -> Option<&FromItem> {
         match self {
             Self::Delete(delete) => delete.using.as_ref().map(|using| &using.item),

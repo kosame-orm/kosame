@@ -142,13 +142,17 @@ impl<'a> ParentMapBuilder<'a> {
         Default::default()
     }
 
-    fn push(&mut self, new: Parent<'a>) {
-        if let Some(parent) = self.stack.last() {
-            if self.parent_map.map.insert(new.as_ptr(), parent.clone()).is_some() {
-                panic!("node has multiple parents");
-            }
+    fn push<N>(&mut self, node: &'a N)
+    where
+        &'a N: Into<Parent<'a>>,
+    {
+        let ptr = node as *const N as *const ();
+        if let Some(parent) = self.stack.last()
+            && self.parent_map.map.insert(ptr, parent.clone()).is_some()
+        {
+            panic!("node has multiple parents");
         }
-        self.stack.push(new);
+        self.stack.push(node.into());
     }
 
     pub fn build(self) -> ParentMap<'a> {
@@ -158,7 +162,7 @@ impl<'a> ParentMapBuilder<'a> {
 
 impl<'a> Visitor<'a> for ParentMapBuilder<'a> {
     fn visit_command(&mut self, node: &'a Command) {
-        self.push(node.into());
+        self.push(node);
     }
 
     fn end_command(&mut self) {
@@ -166,7 +170,7 @@ impl<'a> Visitor<'a> for ParentMapBuilder<'a> {
     }
 
     fn visit_from_item(&mut self, node: &'a FromItem) {
-        self.push(node.into());
+        self.push(node);
     }
 
     fn end_from_item(&mut self) {
@@ -174,7 +178,7 @@ impl<'a> Visitor<'a> for ParentMapBuilder<'a> {
     }
 
     fn visit_with_item(&mut self, node: &'a WithItem) {
-        self.push(node.into());
+        self.push(node);
     }
 
     fn end_with_item(&mut self) {

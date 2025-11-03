@@ -1,9 +1,7 @@
-use std::collections::HashMap;
-
-use proc_macro_error::{OptionExt, abort};
+use proc_macro_error::OptionExt;
 use proc_macro2::TokenStream;
 use quote::{ToTokens, quote};
-use syn::{Ident, Path, spanned::Spanned};
+use syn::{Ident, Path};
 
 use crate::{
     clause::{FromItem, FromItemIter},
@@ -58,13 +56,12 @@ impl<'a> Iterator for ScopeIter<'a> {
                     if lateral_keyword.is_none() {
                         return None;
                     }
-                    if let Some(Parent::FromItem(parent)) = parent_map.parent(from_item) {
-                        if let Some(right) = parent.right()
-                            && std::ptr::eq(right, from_item)
-                        {
-                            self.from_items = parent.left().map(|left| left.into_iter());
-                            return self.next();
-                        }
+                    if let Some(Parent::FromItem(parent)) = parent_map.parent(from_item)
+                        && let Some(right) = parent.right()
+                        && std::ptr::eq(right, from_item)
+                    {
+                        self.from_items = parent.left().map(|left| left.into_iter());
+                        return self.next();
                     }
                 }
                 _ => return None,
@@ -97,7 +94,7 @@ impl ToTokens for ScopeModule<'_> {
         let items = ParentMap::with(|parent_map| {
             ScopeIter::new(self.command, Some(parent_map))
                 .flat_map(|item| match item {
-                    ScopeIterItem::Table { table, alias } => {
+                    ScopeIterItem::Table { table, .. } => {
                         ScopeModuleItem::try_from(&FromItem::Table {
                             table: table.clone(),
                             alias: None,
@@ -113,13 +110,11 @@ impl ToTokens for ScopeModule<'_> {
         let local_items = ScopeIter::new(self.command, None);
         let columns = local_items
             .flat_map(|item| match item {
-                ScopeIterItem::Table { table, alias } => {
-                    ScopeModuleItem::try_from(&FromItem::Table {
-                        table: table.clone(),
-                        alias: None,
-                    })
-                    .ok()
-                }
+                ScopeIterItem::Table { table, .. } => ScopeModuleItem::try_from(&FromItem::Table {
+                    table: table.clone(),
+                    alias: None,
+                })
+                .ok(),
                 ScopeIterItem::FromItem(from_item) => ScopeModuleItem::try_from(from_item).ok(),
             })
             .map(|item| {
@@ -190,24 +185,24 @@ impl TryFrom<&FromItem> for ScopeModuleItem {
                 None => Ok(ScopeModuleItem::Existing(table.clone())),
             },
             FromItem::Subquery { command, alias, .. } => match alias {
-                Some(alias) => {
-                    if let Some(columns) = &alias.columns {
-                        Ok(ScopeModuleItem::Custom {
-                            correlation: alias.name.clone(),
-                            columns: columns.columns.iter().cloned().collect(),
-                        })
-                    } else {
-                        Ok(ScopeModuleItem::Custom {
-                            correlation: alias.name.clone(),
-                            columns: command
-                                .fields()
-                                .expect_or_abort("subquery must have return fields")
-                                .iter()
-                                .filter_map(|field| field.infer_name().cloned())
-                                .collect(),
-                        })
-                    }
-                }
+                Some(
+                    alias @ TableAlias {
+                        columns: Some(columns),
+                        ..
+                    },
+                ) => Ok(ScopeModuleItem::Custom {
+                    correlation: alias.name.clone(),
+                    columns: columns.columns.iter().cloned().collect(),
+                }),
+                Some(alias) => Ok(ScopeModuleItem::Custom {
+                    correlation: alias.name.clone(),
+                    columns: command
+                        .fields()
+                        .expect_or_abort("subquery must have return fields")
+                        .iter()
+                        .filter_map(|field| field.infer_name().cloned())
+                        .collect(),
+                }),
                 None => Err(()),
             },
             _ => Err(()),

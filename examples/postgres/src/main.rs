@@ -1,4 +1,3 @@
-use kosame::query::{Query, RecordArrayRunner};
 use kosame::statement::Statement;
 
 // Declare your database schema.
@@ -59,10 +58,11 @@ fn main() {
 
     let statement = kosame::pg_statement! {
         select
-            posts.id: i32,
+            posts_2.id: i32,
             pip.id as comment_id: ::std::option::Option<i32>
-        from schema::posts
-        left join lateral (select id from schema::comments where comments.post_id = posts.id) as pip on true
+        from schema::posts as posts_1
+        left join lateral (select id from schema::comments where comments.post_id = posts_1.id) as pip on true
+        left join schema::posts as posts_2 on true
     };
 
     use kosame::sql::FmtSql;
