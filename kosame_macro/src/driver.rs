@@ -1,3 +1,5 @@
+use std::str::FromStr;
+
 pub enum Driver {
     Postgres,
     TokioPostgres,
@@ -5,10 +7,10 @@ pub enum Driver {
     Rusqlite,
 }
 
-impl TryFrom<&str> for Driver {
-    type Error = ();
+impl FromStr for Driver {
+    type Err = ();
 
-    fn try_from(value: &str) -> Result<Self, ()> {
+    fn from_str(value: &str) -> Result<Self, ()> {
         match value {
             "postgres" => Ok(Self::Postgres),
             "tokio-postgres" => Ok(Self::TokioPostgres),

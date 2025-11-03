@@ -147,7 +147,7 @@ impl Parse for MetaDriver {
             _eq_token: input.parse()?,
             _value: {
                 let value: LitStr = input.parse()?;
-                if Driver::try_from(value.value().as_ref()).is_err() {
+                if value.value().parse::<Driver>().is_err() {
                     return Err(syn::Error::new(value.span(), "unknown driver value"));
                 }
                 value
