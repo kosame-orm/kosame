@@ -14,7 +14,7 @@ pub struct Raw {
 }
 
 impl Raw {
-    pub fn accept<'a>(&'a self, visitor: &mut impl Visitor<'a>) {}
+    pub fn accept<'a>(&'a self, _visitor: &mut impl Visitor<'a>) {}
 
     pub fn infer_name(&self) -> Option<&Ident> {
         None

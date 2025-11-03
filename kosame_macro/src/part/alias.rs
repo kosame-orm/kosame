@@ -1,3 +1,5 @@
+use proc_macro2::TokenStream;
+use quote::ToTokens;
 use syn::{
     Ident, Token,
     parse::{Parse, ParseStream},
@@ -24,5 +26,11 @@ impl Parse for Alias {
             _as: input.parse()?,
             ident: input.parse()?,
         })
+    }
+}
+
+impl ToTokens for Alias {
+    fn to_tokens(&self, tokens: &mut TokenStream) {
+        self.ident.to_string().to_tokens(tokens);
     }
 }

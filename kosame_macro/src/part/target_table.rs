@@ -5,7 +5,7 @@ use syn::{
     parse::{Parse, ParseStream},
 };
 
-use crate::{alias::Alias, path_ext::PathExt, quote_option::QuoteOption, visitor::Visitor};
+use crate::{part::Alias, path_ext::PathExt, quote_option::QuoteOption, visitor::Visitor};
 
 pub struct TargetTable {
     pub table: Path,
@@ -30,7 +30,7 @@ impl Parse for TargetTable {
 impl ToTokens for TargetTable {
     fn to_tokens(&self, tokens: &mut TokenStream) {
         let table = self.table.to_call_site(1);
-        let alias = QuoteOption(self.alias.as_ref().map(|alias| alias.ident.to_string()));
+        let alias = QuoteOption::from(&self.alias);
         quote! {
             ::kosame::repr::part::TargetTable::new(#table::TABLE_NAME, #alias)
         }

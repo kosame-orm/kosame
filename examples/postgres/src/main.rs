@@ -57,7 +57,12 @@ fn main() {
     let id = 7;
 
     let statement = kosame::pg_statement! {
-        delete from schema::kek where kek.id = 3
+        select
+            posts_2.id: i32,
+            pip.id as comment_id: ::std::option::Option<i32>
+        from schema::posts as posts_1
+        left join lateral (select id from schema::comments where comments.post_id = posts_1.id) as pip on true
+        left join schema::posts as posts_2 on true
     };
 
     use kosame::sql::FmtSql;
@@ -67,7 +72,7 @@ fn main() {
         .unwrap();
     println!("{}", sql);
 
-    let rows = statement.exec_sync(&mut client).unwrap();
+    let rows = statement.exec_vec_sync(&mut client).unwrap();
 
     println!("{:#?}", rows);
 }

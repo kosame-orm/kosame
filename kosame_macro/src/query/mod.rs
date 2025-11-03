@@ -14,9 +14,9 @@ use syn::{
 };
 
 use crate::{
-    alias::Alias,
     attribute::{CustomMeta, MetaLocation},
     bind_params::{BindParamsBuilder, BindParamsClosure},
+    part::Alias,
     path_ext::PathExt,
 };
 

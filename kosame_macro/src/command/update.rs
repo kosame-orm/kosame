@@ -47,9 +47,9 @@ impl ToTokens for Update {
     fn to_tokens(&self, tokens: &mut TokenStream) {
         let target_table = &self.target_table;
         let set = &self.set;
-        let from = QuoteOption(self.from.as_ref());
-        let r#where = QuoteOption(self.r#where.as_ref());
-        let returning = QuoteOption(self.returning.as_ref());
+        let from = QuoteOption::from(&self.from);
+        let r#where = QuoteOption::from(&self.r#where);
+        let returning = QuoteOption::from(&self.returning);
 
         quote! {
             ::kosame::repr::command::Update::new(

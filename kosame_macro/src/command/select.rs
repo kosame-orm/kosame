@@ -68,13 +68,13 @@ impl Parse for Select {
 impl ToTokens for Select {
     fn to_tokens(&self, tokens: &mut TokenStream) {
         let select = &self.select;
-        let from = QuoteOption(self.from.as_ref());
-        let r#where = QuoteOption(self.r#where.as_ref());
-        let group_by = QuoteOption(self.group_by.as_ref());
-        let having = QuoteOption(self.having.as_ref());
-        let order_by = QuoteOption(self.order_by.as_ref());
-        let limit = QuoteOption(self.limit.as_ref());
-        let offset = QuoteOption(self.offset.as_ref());
+        let from = QuoteOption::from(&self.from);
+        let r#where = QuoteOption::from(&self.r#where);
+        let group_by = QuoteOption::from(&self.group_by);
+        let having = QuoteOption::from(&self.having);
+        let order_by = QuoteOption::from(&self.order_by);
+        let limit = QuoteOption::from(&self.limit);
+        let offset = QuoteOption::from(&self.offset);
 
         quote! {
             ::kosame::repr::command::Select::new(

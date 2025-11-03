@@ -159,7 +159,7 @@ impl Node {
         for field in &self.fields {
             match field {
                 Field::Column { name, alias, .. } => {
-                    let alias = QuoteOption(alias.as_ref().map(|alias| alias.ident.to_string()));
+                    let alias = QuoteOption::from(alias);
                     fields.push(quote! {
                         ::kosame::repr::query::Field::Column {
                             column: &#table_path_call_site::columns::#name::COLUMN,
@@ -170,7 +170,7 @@ impl Node {
                 Field::Relation {
                     name, node, alias, ..
                 } => {
-                    let alias = QuoteOption(alias.as_ref().map(|alias| alias.ident.to_string()));
+                    let alias = QuoteOption::from(alias);
 
                     let node_path = node_path.clone().appended(name.clone());
 
@@ -211,10 +211,10 @@ impl Node {
 
         let star = self.star.is_some();
 
-        let r#where = QuoteOption(self.r#where.as_ref());
-        let order_by = QuoteOption(self.order_by.as_ref());
-        let limit = QuoteOption(self.limit.as_ref());
-        let offset = QuoteOption(self.offset.as_ref());
+        let r#where = QuoteOption::from(&self.r#where);
+        let order_by = QuoteOption::from(&self.order_by);
+        let limit = QuoteOption::from(&self.limit);
+        let offset = QuoteOption::from(&self.offset);
 
         quote! {
             {

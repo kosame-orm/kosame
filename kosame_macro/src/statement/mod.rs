@@ -6,11 +6,11 @@ use syn::{
 };
 
 use crate::{
-    alias::Alias,
     attribute::{CustomMeta, MetaLocation},
     bind_params::{BindParamsBuilder, BindParamsClosure},
     command::Command,
     parent_map::ParentMapBuilder,
+    part::Alias,
     row::Row,
     table_refs::TableRefs,
     visitor::Visitor,

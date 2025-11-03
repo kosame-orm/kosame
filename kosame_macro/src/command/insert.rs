@@ -42,7 +42,7 @@ impl ToTokens for Insert {
     fn to_tokens(&self, tokens: &mut TokenStream) {
         let target_table = &self.target_table;
         let values = &self.values;
-        let returning = QuoteOption(self.returning.as_ref());
+        let returning = QuoteOption::from(&self.returning);
 
         quote! {
             ::kosame::repr::command::Insert::new(

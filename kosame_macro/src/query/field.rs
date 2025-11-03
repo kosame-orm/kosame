@@ -1,6 +1,6 @@
 use super::Node;
 use crate::{
-    alias::Alias, expr::Expr, path_ext::PathExt, query::node_path::QueryNodePath, row::RowField,
+    expr::Expr, part::Alias, path_ext::PathExt, query::node_path::QueryNodePath, row::RowField,
     type_override::TypeOverride,
 };
 use proc_macro2::Span;

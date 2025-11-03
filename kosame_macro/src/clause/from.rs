@@ -268,7 +268,7 @@ impl ToTokens for FromItem {
         match self {
             Self::Table { table, alias } => {
                 let table = table.to_call_site(1);
-                let alias = QuoteOption(alias.as_ref());
+                let alias = QuoteOption::from(alias);
                 quote! {
                     ::kosame::repr::clause::FromItem::Table {
                         table: &#table::TABLE,
@@ -283,7 +283,7 @@ impl ToTokens for FromItem {
                 ..
             } => {
                 let lateral = _lateral_keyword.is_some();
-                let alias = QuoteOption(alias.as_ref());
+                let alias = QuoteOption::from(alias);
                 quote! {
                     ::kosame::repr::clause::FromItem::Subquery {
                         lateral: #lateral,

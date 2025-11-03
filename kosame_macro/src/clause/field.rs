@@ -8,7 +8,7 @@ use syn::{
 };
 
 use crate::{
-    alias::Alias, clause::peek_clause, data_type::InferredType, expr::Expr,
+    clause::peek_clause, data_type::InferredType, expr::Expr, part::Alias,
     quote_option::QuoteOption, row::RowField, type_override::TypeOverride, visitor::Visitor,
 };
 
@@ -74,7 +74,7 @@ impl Parse for Field {
 impl ToTokens for Field {
     fn to_tokens(&self, tokens: &mut TokenStream) {
         let expr = &self.expr;
-        let alias = QuoteOption(self.alias.as_ref().map(|alias| alias.ident.to_string()));
+        let alias = QuoteOption::from(&self.alias);
         quote! {
             ::kosame::repr::clause::Field::new(#expr, #alias)
         }

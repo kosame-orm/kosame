@@ -48,9 +48,9 @@ impl Parse for Delete {
 impl ToTokens for Delete {
     fn to_tokens(&self, tokens: &mut TokenStream) {
         let target_table = &self.target_table;
-        let using = QuoteOption(self.using.as_ref());
-        let r#where = QuoteOption(self.r#where.as_ref());
-        let returning = QuoteOption(self.returning.as_ref());
+        let using = QuoteOption::from(&self.using);
+        let r#where = QuoteOption::from(&self.r#where);
+        let returning = QuoteOption::from(&self.returning);
 
         quote! {
             ::kosame::repr::command::Delete::new(
