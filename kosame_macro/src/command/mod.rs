@@ -20,7 +20,7 @@ use crate::{
     keyword,
     part::TargetTable,
     quote_option::QuoteOption,
-    scope_module::ScopeModule,
+    scope::ScopeModule,
     visitor::Visitor,
 };
 
