@@ -6,8 +6,8 @@ use syn::{
 };
 
 use crate::{
-    command::Command, expr::Expr, keyword, part::TableAlias, path_ext::PathExt,
-    quote_option::QuoteOption, visitor::Visitor,
+    clause::WithItem, command::Command, expr::Expr, keyword, parent_map::ParentMap,
+    part::TableAlias, path_ext::PathExt, quote_option::QuoteOption, visitor::Visitor,
 };
 
 pub struct From {
@@ -221,6 +221,26 @@ impl FromItem {
             Self::Join { .. } => None,
             Self::NaturalJoin { .. } => None,
             Self::CrossJoin { .. } => None,
+        }
+    }
+
+    pub fn with_item<'a>(&'a self, parent_map: &ParentMap<'a>) -> Option<&'a WithItem> {
+        match self {
+            Self::Table { table, .. } => {
+                let table = table.as_ident()?;
+                let mut command = parent_map.seek_parent::<_, Command>(self)?;
+                loop {
+                    if let Some(with) = &command.with {
+                        for item in with.items.iter() {
+                            if item.alias.name == *table {
+                                return Some(item);
+                            }
+                        }
+                    }
+                    command = parent_map.seek_parent::<_, Command>(command)?;
+                }
+            }
+            _ => None,
         }
     }
 
