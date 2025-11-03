@@ -329,14 +329,27 @@ impl ToTokens for FromItem {
     fn to_tokens(&self, tokens: &mut TokenStream) {
         match self {
             Self::Table { table, alias, .. } => {
-                let table = table.to_call_site(1);
                 let alias = QuoteOption::from(alias);
-                quote! {
-                    ::kosame::repr::clause::FromItem::Table {
-                        table: &#table::TABLE,
-                        alias: #alias,
+                ParentMap::with(|parent_map| match self.with_item(parent_map) {
+                    Some(with_item) => {
+                        let name_string = with_item.alias.name.to_string();
+                        quote! {
+                            ::kosame::repr::clause::FromItem::Table {
+                                table: #name_string,
+                                alias: #alias,
+                            }
+                        }
                     }
-                }
+                    None => {
+                        let table = table.to_call_site(1);
+                        quote! {
+                            ::kosame::repr::clause::FromItem::Table {
+                                table: #table::TABLE_NAME,
+                                alias: #alias,
+                            }
+                        }
+                    }
+                })
             }
             Self::Subquery {
                 lateral_keyword: _lateral_keyword,

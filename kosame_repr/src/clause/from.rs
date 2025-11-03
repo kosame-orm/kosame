@@ -1,6 +1,6 @@
 use std::fmt::Write;
 
-use crate::{command::Command, expr::Expr, part::TableAlias, schema::Table};
+use crate::{command::Command, expr::Expr, part::TableAlias};
 
 pub struct From<'a> {
     item: FromItem<'a>,
@@ -53,7 +53,7 @@ impl kosame_sql::FmtSql for JoinType {
 
 pub enum FromItem<'a> {
     Table {
-        table: &'a Table<'a>,
+        table: &'a str,
         alias: Option<TableAlias<'a>>,
     },
     Subquery {
@@ -85,7 +85,7 @@ impl kosame_sql::FmtSql for FromItem<'_> {
     {
         match self {
             Self::Table { table, alias } => {
-                formatter.write_ident(table.name())?;
+                formatter.write_ident(table)?;
                 if let Some(alias) = alias {
                     formatter.write_str(" as ")?;
                     alias.fmt_sql(formatter)?;

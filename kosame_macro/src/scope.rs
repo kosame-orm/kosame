@@ -139,7 +139,33 @@ impl ToTokens for ScopeModule<'_> {
                                 columns: Some(columns),
                                 ..
                             }) => custom_tokens(name, &columns.columns.iter().collect::<Vec<_>>()),
-                            _ => table_tokens(table, alias.as_ref().map(|alias| &alias.name)),
+                            _ => {
+                                let alias = alias.as_ref().map(|alias| &alias.name);
+                                match from_item.with_item(parent_map) {
+                                    Some(with_item) => custom_tokens(
+                                        alias.unwrap_or(&with_item.alias.name),
+                                        &with_item
+                                            .alias
+                                            .columns
+                                            .as_ref()
+                                            .map(|columns| {
+                                                columns.columns.iter().collect::<Vec<_>>()
+                                            })
+                                            .unwrap_or_else(|| {
+                                                with_item
+                                                    .command
+                                                    .fields()
+                                                    .expect_or_abort(
+                                                        "with item must have return fields",
+                                                    )
+                                                    .iter()
+                                                    .filter_map(|field| field.infer_name())
+                                                    .collect::<Vec<_>>()
+                                            }),
+                                    ),
+                                    None => table_tokens(table, alias),
+                                }
+                            }
                         },
                         FromItem::Subquery { command, alias, .. } => match alias {
                             Some(

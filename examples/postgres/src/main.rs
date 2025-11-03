@@ -58,14 +58,14 @@ fn main() {
 
     let statement = kosame::pg_statement! {
         with kek as (
-            select 5, 6
+            select 5 as pip, 6 as lel
         )
         select
-            posts_2.id: i32,
-            pip.id as comment_id: ::std::option::Option<i32>
-        from schema::posts as posts_1
-        left join lateral (select id from schema::comments where comments.post_id = posts_1.id) as pip on true
-        left join schema::posts as posts_2 on true
+            posts.id: i32,
+            kek.pip: i32,
+            kek.lel: i32,
+        from schema::posts
+        left join kek on true
     };
 
     use kosame::sql::FmtSql;
