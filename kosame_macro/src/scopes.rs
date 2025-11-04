@@ -5,9 +5,10 @@ use quote::{ToTokens, format_ident, quote};
 use syn::{Ident, Path};
 
 use crate::{
-    clause::{FromItem, WithItem},
+    clause::{Field, Fields, FromItem, WithItem},
     command::Command,
-    part::TableAlias,
+    data_type::InferredType,
+    part::{ColumnList, TableAlias},
     path_ext::PathExt,
 };
 
@@ -25,15 +26,17 @@ impl ScopeId {
     pub fn reset() {
         SCOPE_ID.store(0, std::sync::atomic::Ordering::Relaxed);
     }
-
-    pub fn to_ident(self) -> Ident {
-        format_ident!("scope_{}", self.0)
-    }
 }
 
 impl Default for ScopeId {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+impl ToTokens for ScopeId {
+    fn to_tokens(&self, tokens: &mut TokenStream) {
+        format_ident!("scope_{}", self.0).to_tokens(tokens);
     }
 }
 
@@ -66,7 +69,7 @@ impl<'a> Scope<'a> {
 
 impl ToTokens for Scope<'_> {
     fn to_tokens(&self, tokens: &mut TokenStream) {
-        let name = self.id.to_ident();
+        let name = &self.id;
         let tables = &self.modules;
         let columns = self
             .modules
@@ -153,9 +156,8 @@ impl ToTokens for ScopeModule<'_> {
                 }
             }
             Self::Inherited { source_id, name } => {
-                let source_name = source_id.to_ident();
                 quote! {
-                    pub use super::super::#source_name::tables::#name;
+                    pub use super::super::#source_id::tables::#name;
                 }
             }
         }
@@ -165,15 +167,41 @@ impl ToTokens for ScopeModule<'_> {
 
 struct CustomColumn<'a> {
     name: &'a Ident,
+    inferred_type: Option<InferredType>,
+}
+
+impl<'a> CustomColumn<'a> {
+    fn from_field(field: &'a Field, scope_id: ScopeId) -> Option<CustomColumn<'a>> {
+        Some(CustomColumn {
+            name: field.infer_name()?,
+            inferred_type: field.infer_type(scope_id),
+        })
+    }
+
+    fn from_command(command: &'a Command) -> Vec<CustomColumn<'a>> {
+        match command.fields() {
+            Some(fields) => fields
+                .iter()
+                .flat_map(|field| CustomColumn::from_field(field, command.scope_id))
+                .collect(),
+            None => Vec::new(),
+        }
+    }
 }
 
 impl ToTokens for CustomColumn<'_> {
     fn to_tokens(&self, tokens: &mut TokenStream) {
         let name = &self.name;
         let name_string = self.name.to_string();
+        let inferred_type = self
+            .inferred_type
+            .as_ref()
+            .map(|inferred_type| inferred_type.to_call_site(6))
+            .into_iter();
         quote! {
             pub mod #name {
                 pub const COLUMN_NAME: &str = #name_string;
+                #(pub type Type = #inferred_type;)*
             }
         }
         .to_tokens(tokens);
@@ -227,33 +255,12 @@ impl<'a> From<&'a Command> for Scopes<'a> {
                     {
                         Some(ScopeModule::Custom {
                             name: table,
-                            columns: alias
-                                .as_ref()
-                                .unwrap_or(&with_item.alias)
-                                .columns
-                                .as_ref()
-                                .map(|columns| {
-                                    columns
-                                        .columns
-                                        .iter()
-                                        .map(|name| CustomColumn { name })
-                                        .collect()
-                                })
-                                .unwrap_or_else(|| {
-                                    with_item
-                                        .command
-                                        .fields()
-                                        .into_iter()
-                                        .flat_map(|fields| {
-                                            fields.iter().flat_map(|field| field.infer_name())
-                                        })
-                                        .map(|name| CustomColumn { name })
-                                        .collect()
-                                }),
+                            columns: CustomColumn::from_command(&with_item.command),
                         })
                     } else {
                         match from_item {
                             FromItem::Table {
+                                table,
                                 alias:
                                     Some(TableAlias {
                                         name,
@@ -266,7 +273,13 @@ impl<'a> From<&'a Command> for Scopes<'a> {
                                 columns: columns
                                     .columns
                                     .iter()
-                                    .map(|name| CustomColumn { name })
+                                    .map(|name| CustomColumn {
+                                        name,
+                                        inferred_type: Some(InferredType::Column {
+                                            table: table.clone(),
+                                            column: name.clone(),
+                                        }),
+                                    })
                                     .collect(),
                             }),
                             FromItem::Table { table, alias, .. } => Some(ScopeModule::Table {
@@ -291,28 +304,7 @@ impl<'a> From<&'a Command> for Scopes<'a> {
                                 );
                                 alias.as_ref().map(|alias| ScopeModule::Custom {
                                     name: &alias.name,
-                                    columns: alias
-                                        .columns
-                                        .as_ref()
-                                        .map(|columns| {
-                                            columns
-                                                .columns
-                                                .iter()
-                                                .map(|name| CustomColumn { name })
-                                                .collect()
-                                        })
-                                        .unwrap_or_else(|| {
-                                            command
-                                                .fields()
-                                                .into_iter()
-                                                .flat_map(|fields| {
-                                                    fields
-                                                        .iter()
-                                                        .flat_map(|field| field.infer_name())
-                                                })
-                                                .map(|name| CustomColumn { name })
-                                                .collect()
-                                        }),
+                                    columns: CustomColumn::from_command(command),
                                 })
                             }
                             _ => None,

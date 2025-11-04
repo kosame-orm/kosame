@@ -55,20 +55,18 @@ fn main() {
     //
 
     let id = 7;
-
     let statement = kosame::pg_statement! {
         with kek as (
             select 5 as pip, 6 as lel
         )
         select
-            smep.id: i32,
-            kek.pip: i32,
-            kek.lel: i32,
+            smep.id as id_2,
+            lelel.id,
         from schema::posts as smep
         left join kek on true
         left join lateral (
             select id from schema::comments
-        ) on true
+        ) as lelel on true
         left join schema::posts as lul on true
     };
 
