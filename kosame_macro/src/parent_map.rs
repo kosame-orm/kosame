@@ -3,6 +3,7 @@ use std::{cell::RefCell, collections::HashMap, sync::atomic::Ordering};
 use crate::{
     clause::{FromItem, WithItem},
     command::Command,
+    expr::ColumnRef,
     visitor::Visitor,
 };
 
@@ -87,6 +88,7 @@ pub enum Node<'a> {
     Command(&'a Command),
     FromItem(&'a FromItem),
     WithItem(&'a WithItem),
+    ColumnRef(&'a ColumnRef),
 }
 
 impl Node<'_> {
@@ -95,57 +97,35 @@ impl Node<'_> {
             Self::Command(inner) => &inner.id,
             Self::FromItem(inner) => inner.id(),
             Self::WithItem(inner) => &inner.id,
+            Self::ColumnRef(inner) => &inner.id,
         }
     }
 }
 
-impl<'a> From<&'a Command> for Node<'a> {
-    fn from(v: &'a Command) -> Self {
-        Self::Command(v)
-    }
-}
-
-impl<'a> From<&'a FromItem> for Node<'a> {
-    fn from(v: &'a FromItem) -> Self {
-        Self::FromItem(v)
-    }
-}
-
-impl<'a> From<&'a WithItem> for Node<'a> {
-    fn from(v: &'a WithItem) -> Self {
-        Self::WithItem(v)
-    }
-}
-
-impl<'a> TryFrom<&Node<'a>> for &'a Command {
-    type Error = ();
-    fn try_from(value: &Node<'a>) -> Result<Self, Self::Error> {
-        match value {
-            Node::Command(inner) => Ok(inner),
-            _ => Err(()),
+macro_rules! impl_node_variant {
+    ($type:ident) => {
+        impl<'a> From<&'a $type> for Node<'a> {
+            fn from(v: &'a $type) -> Self {
+                Self::$type(v)
+            }
         }
-    }
+
+        impl<'a> TryFrom<&Node<'a>> for &'a $type {
+            type Error = ();
+            fn try_from(value: &Node<'a>) -> Result<Self, Self::Error> {
+                match value {
+                    Node::$type(inner) => Ok(inner),
+                    _ => Err(()),
+                }
+            }
+        }
+    };
 }
 
-impl<'a> TryFrom<&Node<'a>> for &'a FromItem {
-    type Error = ();
-    fn try_from(value: &Node<'a>) -> Result<Self, Self::Error> {
-        match value {
-            Node::FromItem(inner) => Ok(inner),
-            _ => Err(()),
-        }
-    }
-}
-
-impl<'a> TryFrom<&Node<'a>> for &'a WithItem {
-    type Error = ();
-    fn try_from(value: &Node<'a>) -> Result<Self, Self::Error> {
-        match value {
-            Node::WithItem(inner) => Ok(inner),
-            _ => Err(()),
-        }
-    }
-}
+impl_node_variant!(Command);
+impl_node_variant!(FromItem);
+impl_node_variant!(WithItem);
+impl_node_variant!(ColumnRef);
 
 #[derive(Default)]
 pub struct ParentMapBuilder<'a> {
