@@ -20,7 +20,7 @@ pub struct ScopeIter<'a> {
 }
 
 impl<'a> ScopeIter<'a> {
-    fn new(parent_map: &'a ParentMap<'a>, node: impl Into<Node<'a>>, recursive: bool) -> Self {
+    pub fn new(parent_map: &'a ParentMap<'a>, node: impl Into<Node<'a>>, recursive: bool) -> Self {
         let node = node.into();
         let command = match node {
             Node::Command(command) => command,

@@ -1,4 +1,8 @@
-use crate::{data_type::InferredType, parent_map::Id};
+use crate::{
+    data_type::InferredType,
+    parent_map::{Id, ParentMap},
+    scope::{ScopeIter, ScopeIterItem},
+};
 
 use super::Visitor;
 use proc_macro2::{Span, TokenStream};
@@ -6,6 +10,7 @@ use quote::{ToTokens, quote};
 use syn::{
     Ident, Token,
     parse::{Parse, ParseStream},
+    parse_quote,
 };
 
 pub struct ColumnRef {
@@ -25,7 +30,26 @@ impl ColumnRef {
     }
 
     pub fn infer_type(&self) -> Option<InferredType> {
-        None
+        match &self.correlation {
+            Some(correlation) => ParentMap::with(|parent_map| {
+                for item in ScopeIter::new(parent_map, self, true) {
+                    match item {
+                        ScopeIterItem::TargetTable(target_table) => {
+                            if *target_table.name() == correlation.name {
+                                let table = &target_table.table;
+                                let column = &self.name;
+                                return Some(InferredType::Column(parse_quote! {
+                                    #table::columns::#column
+                                }));
+                            }
+                        }
+                        ScopeIterItem::FromItem(from_Item) => {}
+                    }
+                }
+                None
+            }),
+            None => None,
+        }
     }
 
     pub fn span(&self) -> Span {
