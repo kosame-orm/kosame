@@ -59,20 +59,20 @@ impl<'a> ParentMap<'a> {
         })
     }
 
-    pub fn parent<N>(&self, node: &'a N) -> Option<&Node<'a>>
+    pub fn parent<N>(&self, node: N) -> Option<&Node<'a>>
     where
-        Node<'a>: From<&'a N>,
+        N: Into<Node<'a>>,
     {
-        self.map.get(Node::from(node).id())
+        self.map.get(node.into().id())
     }
 
-    pub fn seek_parent<N, P>(&self, node: &'a N) -> Option<&'a P>
+    pub fn seek_parent<N, P>(&self, node: N) -> Option<&'a P>
     where
         P: 'a,
-        Node<'a>: From<&'a N>,
+        N: Into<Node<'a>>,
         for<'b> &'a P: TryFrom<&'b Node<'a>>,
     {
-        let mut node = &Node::from(node);
+        let mut node = &node.into();
         while let Some(parent) = self.map.get(node.id()) {
             if let Ok(parent) = <&'a P>::try_from(parent) {
                 return Some(parent);

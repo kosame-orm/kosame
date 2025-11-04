@@ -12,15 +12,24 @@ use crate::{
 };
 
 pub struct ScopeIter<'a> {
+    parent_map: &'a ParentMap<'a>,
     command: &'a Command,
     target_table: Option<&'a TargetTable>,
     from_items: Option<FromItemIter<'a>>,
-    recursive: Option<&'a ParentMap<'a>>,
+    recursive: bool,
 }
 
 impl<'a> ScopeIter<'a> {
-    fn new(command: &'a Command, recursive: Option<&'a ParentMap<'a>>) -> Self {
+    fn new(parent_map: &'a ParentMap<'a>, node: impl Into<Node<'a>>, recursive: bool) -> Self {
+        let node = node.into();
+        let command = match node {
+            Node::Command(command) => command,
+            _ => parent_map
+                .seek_parent::<_, Command>(node)
+                .expect("node needs surrounding command to iterate scope"),
+        };
         Self {
+            parent_map,
             command,
             target_table: command.target_table(),
             from_items: command
@@ -46,9 +55,9 @@ impl<'a> Iterator for ScopeIter<'a> {
         {
             return Some(ScopeIterItem::FromItem(next));
         }
-        if let Some(parent_map) = &self.recursive {
-            let from_item = parent_map.seek_parent::<_, FromItem>(self.command)?;
-            self.command = parent_map.seek_parent::<_, Command>(self.command)?;
+        if self.recursive {
+            let from_item = self.parent_map.seek_parent::<_, FromItem>(self.command)?;
+            self.command = self.parent_map.seek_parent::<_, Command>(self.command)?;
             match from_item {
                 FromItem::Subquery {
                     lateral_keyword, ..
@@ -56,7 +65,7 @@ impl<'a> Iterator for ScopeIter<'a> {
                     if lateral_keyword.is_none() {
                         return None;
                     }
-                    if let Some(Node::FromItem(node)) = parent_map.parent(from_item)
+                    if let Some(Node::FromItem(node)) = self.parent_map.parent(from_item)
                         && let Some(right) = node.right()
                         && std::ptr::eq(right, from_item)
                     {
@@ -126,7 +135,7 @@ impl ToTokens for ScopeModule<'_> {
                 }
             }
 
-            for item in ScopeIter::new(self.command, Some(parent_map)) {
+            for item in ScopeIter::new(parent_map, self.command, true) {
                 match item {
                     ScopeIterItem::TargetTable(target_table) => table_tokens(
                         &target_table.table,
@@ -196,15 +205,18 @@ impl ToTokens for ScopeModule<'_> {
         });
 
         let mut local_columns = TokenStream::new();
-        for item in ScopeIter::new(self.command, None) {
-            let name = match item {
-                ScopeIterItem::TargetTable(target_table) => Some(target_table.name()),
-                ScopeIterItem::FromItem(from_item) => from_item.name(),
-            };
-            if let Some(name) = name {
-                quote! { pub use super::tables::#name::columns::*; }.to_tokens(&mut local_columns);
+        ParentMap::with(|parent_map| {
+            for item in ScopeIter::new(parent_map, self.command, false) {
+                let name = match item {
+                    ScopeIterItem::TargetTable(target_table) => Some(target_table.name()),
+                    ScopeIterItem::FromItem(from_item) => from_item.name(),
+                };
+                if let Some(name) = name {
+                    quote! { pub use super::tables::#name::columns::*; }
+                        .to_tokens(&mut local_columns);
+                }
             }
-        }
+        });
 
         quote! {
             mod scope {
