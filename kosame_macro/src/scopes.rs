@@ -13,16 +13,13 @@ use crate::{
 
 pub struct Scopes<'a> {
     scopes: Vec<Scope<'a>>,
-    with_modules: Vec<WithModule<'a>>,
 }
 
 impl ToTokens for Scopes<'_> {
     fn to_tokens(&self, tokens: &mut TokenStream) {
         let scopes = &self.scopes;
-        let with_modules = &self.with_modules;
         quote! {
             mod scopes {
-                #(#with_modules)*
                 #(#scopes)*
             }
         }
@@ -157,74 +154,32 @@ impl ToTokens for CustomColumn<'_> {
     }
 }
 
-struct WithModule<'a> {
-    index: usize,
-    item: &'a WithItem,
-}
-
-impl ToTokens for WithModule<'_> {
-    fn to_tokens(&self, tokens: &mut TokenStream) {
-        let module_name = format_ident!("with_{}", self.index);
-        let table_name_string = self.item.alias.name.to_string();
-        let columns = self
-            .item
-            .command
-            .command_type
-            .fields()
-            .into_iter()
-            .flat_map(|fields| {
-                fields
-                    .iter()
-                    .flat_map(|field| field.infer_name().map(|name| CustomColumn { name }))
-            });
-        quote! {
-            mod #module_name {
-                pub const TABLE_NAME: &str = #table_name_string;
-                pub mod columns {
-                    #(#columns)*
-                }
-            }
-        }
-        .to_tokens(tokens);
-    }
-}
-
 impl<'a> From<&'a Command> for Scopes<'a> {
     fn from(value: &'a Command) -> Self {
         fn inner<'a>(
-            global_scope_index: &mut usize,
-            global_with_index: &mut usize,
+            global_index: &mut usize,
             scopes: &mut Vec<Scope<'a>>,
-            with_modules: &mut Vec<WithModule<'a>>,
             command: &'a Command,
-            inherited_with_items: &mut Vec<(usize, &'a Ident)>,
+            inherited_with_items: &mut Vec<&'a WithItem>,
             inherited_from_items: &mut Vec<(usize, &'a Ident)>,
         ) {
-            let scope_index = *global_scope_index;
-            *global_scope_index += 1;
+            let index = *global_index;
+            *global_index += 1;
             let mut shadow = HashSet::new();
 
             let mut inherited_with_items_count = 0;
             if let Some(with) = &command.with {
                 for item in with.items.iter() {
                     inner(
-                        global_scope_index,
-                        global_with_index,
+                        global_index,
                         scopes,
-                        with_modules,
                         &item.command,
                         inherited_with_items,
                         inherited_from_items,
                     );
 
-                    inherited_with_items.push((*global_with_index, &item.alias.name));
+                    inherited_with_items.push(item);
                     inherited_with_items_count += 1;
-
-                    with_modules.push(WithModule {
-                        index: *global_with_index,
-                        item,
-                    });
-                    *global_with_index += 1;
                 }
             }
 
@@ -241,68 +196,110 @@ impl<'a> From<&'a Command> for Scopes<'a> {
             let mut inherited_from_items_count = 0;
             if let Some(from_item) = command.from_item() {
                 for from_item in from_item {
-                    let module = match from_item {
-                        FromItem::Table { table, alias, .. } => {
-                            let mut table = table;
-
-                            match alias {
-                                Some(TableAlias {
-                                    name,
-                                    columns: Some(columns),
-                                    ..
-                                }) => Some(ScopeModule::Custom {
-                                    name,
-                                    columns: columns
+                    let module = if let FromItem::Table { table, alias, .. } = from_item
+                        && let Some(table) = table.get_ident()
+                        && let Some(with_item) = inherited_with_items
+                            .iter()
+                            .rev()
+                            .find(|with_item| with_item.alias.name == *table)
+                    {
+                        Some(ScopeModule::Custom {
+                            name: table,
+                            columns: alias
+                                .as_ref()
+                                .unwrap_or(&with_item.alias)
+                                .columns
+                                .as_ref()
+                                .map(|columns| {
+                                    columns
                                         .columns
                                         .iter()
                                         .map(|name| CustomColumn { name })
-                                        .collect(),
+                                        .collect()
+                                })
+                                .unwrap_or_else(|| {
+                                    with_item
+                                        .command
+                                        .fields()
+                                        .into_iter()
+                                        .flat_map(|fields| {
+                                            fields.iter().flat_map(|field| field.infer_name())
+                                        })
+                                        .map(|name| CustomColumn { name })
+                                        .collect()
                                 }),
-                                _ => Some(ScopeModule::Table {
-                                    path: table,
-                                    alias: alias.as_ref().map(|alias| &alias.name),
-                                }),
-                            }
-                        }
-                        FromItem::Subquery {
-                            lateral_keyword,
-                            command,
-                            alias,
-                            ..
-                        } => {
-                            let mut clean_from_items = Vec::new();
-                            inner(
-                                global_scope_index,
-                                global_with_index,
-                                scopes,
-                                with_modules,
-                                command,
-                                inherited_with_items,
-                                match lateral_keyword {
-                                    Some(..) => inherited_from_items,
-                                    None => &mut clean_from_items,
-                                },
-                            );
-                            alias.as_ref().map(|alias| ScopeModule::Custom {
-                                name: &alias.name,
-                                columns: alias
+                        })
+                    } else {
+                        match from_item {
+                            FromItem::Table {
+                                alias:
+                                    Some(TableAlias {
+                                        name,
+                                        columns: Some(columns),
+                                        ..
+                                    }),
+                                ..
+                            } => Some(ScopeModule::Custom {
+                                name,
+                                columns: columns
                                     .columns
-                                    .as_ref()
-                                    .map(|columns| {
-                                        columns
-                                            .columns
-                                            .iter()
-                                            .map(|name| CustomColumn { name })
-                                            .collect()
-                                    })
-                                    .unwrap_or(Vec::new()),
-                            })
+                                    .iter()
+                                    .map(|name| CustomColumn { name })
+                                    .collect(),
+                            }),
+                            FromItem::Table { table, alias, .. } => Some(ScopeModule::Table {
+                                path: table,
+                                alias: alias.as_ref().map(|alias| &alias.name),
+                            }),
+                            FromItem::Subquery {
+                                lateral_keyword,
+                                command,
+                                alias,
+                                ..
+                            } => {
+                                let mut clean_from_items = Vec::new();
+                                inner(
+                                    global_index,
+                                    scopes,
+                                    command,
+                                    inherited_with_items,
+                                    match lateral_keyword {
+                                        Some(..) => inherited_from_items,
+                                        None => &mut clean_from_items,
+                                    },
+                                );
+                                alias.as_ref().map(|alias| ScopeModule::Custom {
+                                    name: &alias.name,
+                                    columns: alias
+                                        .columns
+                                        .as_ref()
+                                        .map(|columns| {
+                                            columns
+                                                .columns
+                                                .iter()
+                                                .map(|name| CustomColumn { name })
+                                                .collect()
+                                        })
+                                        .unwrap_or_else(|| {
+                                            command
+                                                .fields()
+                                                .into_iter()
+                                                .flat_map(|fields| {
+                                                    fields
+                                                        .iter()
+                                                        .flat_map(|field| field.infer_name())
+                                                })
+                                                .map(|name| CustomColumn { name })
+                                                .collect()
+                                        }),
+                                })
+                            }
+                            _ => None,
                         }
-                        _ => None,
                     };
                     if let Some(module) = module {
                         shadow.insert(module.name());
-                        inherited_from_items.push((scope_index, module.name()));
+                        inherited_from_items.push((index, module.name()));
                         inherited_from_items_count += 1;
 
                         modules.push(module);
@@ -322,24 +319,12 @@ impl<'a> From<&'a Command> for Scopes<'a> {
             inherited_with_items.truncate(inherited_with_items.len() - inherited_with_items_count);
             inherited_from_items.truncate(inherited_from_items.len() - inherited_from_items_count);
 
-            scopes.push(Scope::new(scope_index, modules));
+            scopes.push(Scope::new(index, modules));
         }
 
         let mut scopes = Vec::new();
-        let mut with_modules = Vec::new();
-        inner(
-            &mut 0,
-            &mut 0,
-            &mut scopes,
-            &mut with_modules,
-            value,
-            &mut Vec::new(),
-            &mut Vec::new(),
-        );
+        inner(&mut 0, &mut scopes, value, &mut Vec::new(), &mut Vec::new());
         scopes.reverse();
-        Scopes {
-            scopes,
-            with_modules,
-        }
+        Scopes { scopes }
     }
 }
