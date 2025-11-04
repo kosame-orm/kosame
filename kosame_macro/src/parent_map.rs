@@ -30,7 +30,7 @@ thread_local! {
 
 #[derive(Default)]
 pub struct ParentMap<'a> {
-    map: HashMap<Id, Parent<'a>>,
+    map: HashMap<Id, Node<'a>>,
 }
 
 impl<'a> ParentMap<'a> {
@@ -58,20 +58,20 @@ impl<'a> ParentMap<'a> {
         })
     }
 
-    pub fn parent<N>(&self, node: &'a N) -> Option<&Parent<'a>>
+    pub fn parent<N>(&self, node: &'a N) -> Option<&Node<'a>>
     where
-        Parent<'a>: From<&'a N>,
+        Node<'a>: From<&'a N>,
     {
-        self.map.get(Parent::from(node).id())
+        self.map.get(Node::from(node).id())
     }
 
     pub fn seek_parent<N, P>(&self, node: &'a N) -> Option<&'a P>
     where
         P: 'a,
-        Parent<'a>: From<&'a N>,
-        for<'b> &'a P: TryFrom<&'b Parent<'a>>,
+        Node<'a>: From<&'a N>,
+        for<'b> &'a P: TryFrom<&'b Node<'a>>,
     {
-        let mut node = &Parent::from(node);
+        let mut node = &Node::from(node);
         while let Some(parent) = self.map.get(node.id()) {
             if let Ok(parent) = <&'a P>::try_from(parent) {
                 return Some(parent);
@@ -83,13 +83,13 @@ impl<'a> ParentMap<'a> {
 }
 
 #[derive(Clone)]
-pub enum Parent<'a> {
+pub enum Node<'a> {
     Command(&'a Command),
     FromItem(&'a FromItem),
     WithItem(&'a WithItem),
 }
 
-impl Parent<'_> {
+impl Node<'_> {
     fn id(&self) -> &Id {
         match self {
             Self::Command(inner) => &inner.id,
@@ -99,49 +99,49 @@ impl Parent<'_> {
     }
 }
 
-impl<'a> From<&'a Command> for Parent<'a> {
+impl<'a> From<&'a Command> for Node<'a> {
     fn from(v: &'a Command) -> Self {
         Self::Command(v)
     }
 }
 
-impl<'a> From<&'a FromItem> for Parent<'a> {
+impl<'a> From<&'a FromItem> for Node<'a> {
     fn from(v: &'a FromItem) -> Self {
         Self::FromItem(v)
     }
 }
 
-impl<'a> From<&'a WithItem> for Parent<'a> {
+impl<'a> From<&'a WithItem> for Node<'a> {
     fn from(v: &'a WithItem) -> Self {
         Self::WithItem(v)
     }
 }
 
-impl<'a> TryFrom<&Parent<'a>> for &'a Command {
+impl<'a> TryFrom<&Node<'a>> for &'a Command {
     type Error = ();
-    fn try_from(value: &Parent<'a>) -> Result<Self, Self::Error> {
+    fn try_from(value: &Node<'a>) -> Result<Self, Self::Error> {
         match value {
-            Parent::Command(inner) => Ok(inner),
+            Node::Command(inner) => Ok(inner),
             _ => Err(()),
         }
     }
 }
 
-impl<'a> TryFrom<&Parent<'a>> for &'a FromItem {
+impl<'a> TryFrom<&Node<'a>> for &'a FromItem {
     type Error = ();
-    fn try_from(value: &Parent<'a>) -> Result<Self, Self::Error> {
+    fn try_from(value: &Node<'a>) -> Result<Self, Self::Error> {
         match value {
-            Parent::FromItem(inner) => Ok(inner),
+            Node::FromItem(inner) => Ok(inner),
             _ => Err(()),
         }
     }
 }
 
-impl<'a> TryFrom<&Parent<'a>> for &'a WithItem {
+impl<'a> TryFrom<&Node<'a>> for &'a WithItem {
     type Error = ();
-    fn try_from(value: &Parent<'a>) -> Result<Self, Self::Error> {
+    fn try_from(value: &Node<'a>) -> Result<Self, Self::Error> {
         match value {
-            Parent::WithItem(inner) => Ok(inner),
+            Node::WithItem(inner) => Ok(inner),
             _ => Err(()),
         }
     }
@@ -150,7 +150,7 @@ impl<'a> TryFrom<&Parent<'a>> for &'a WithItem {
 #[derive(Default)]
 pub struct ParentMapBuilder<'a> {
     parent_map: ParentMap<'a>,
-    stack: Vec<Parent<'a>>,
+    stack: Vec<Node<'a>>,
 }
 
 impl<'a> ParentMapBuilder<'a> {
@@ -158,11 +158,13 @@ impl<'a> ParentMapBuilder<'a> {
         Default::default()
     }
 
-    fn push<N>(&mut self, node: &'a N)
-    where
-        &'a N: Into<Parent<'a>>,
-    {
-        let node = node.into();
+    pub fn build(self) -> ParentMap<'a> {
+        self.parent_map
+    }
+}
+
+impl<'a> Visitor<'a> for ParentMapBuilder<'a> {
+    fn visit_parent_node(&mut self, node: Node<'a>) {
         if let Some(parent) = self.stack.last()
             && self
                 .parent_map
@@ -175,33 +177,7 @@ impl<'a> ParentMapBuilder<'a> {
         self.stack.push(node);
     }
 
-    pub fn build(self) -> ParentMap<'a> {
-        self.parent_map
-    }
-}
-
-impl<'a> Visitor<'a> for ParentMapBuilder<'a> {
-    fn visit_command(&mut self, node: &'a Command) {
-        self.push(node);
-    }
-
-    fn end_command(&mut self) {
-        self.stack.pop();
-    }
-
-    fn visit_from_item(&mut self, node: &'a FromItem) {
-        self.push(node);
-    }
-
-    fn end_from_item(&mut self) {
-        self.stack.pop();
-    }
-
-    fn visit_with_item(&mut self, node: &'a WithItem) {
-        self.push(node);
-    }
-
-    fn end_with_item(&mut self) {
+    fn end_parent_node(&mut self) {
         self.stack.pop();
     }
 }

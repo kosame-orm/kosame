@@ -6,7 +6,7 @@ use syn::{Ident, Path};
 use crate::{
     clause::{FromItem, FromItemIter},
     command::Command,
-    parent_map::{Parent, ParentMap},
+    parent_map::{Node, ParentMap},
     part::{TableAlias, TargetTable},
     path_ext::PathExt,
 };
@@ -56,11 +56,11 @@ impl<'a> Iterator for ScopeIter<'a> {
                     if lateral_keyword.is_none() {
                         return None;
                     }
-                    if let Some(Parent::FromItem(parent)) = parent_map.parent(from_item)
-                        && let Some(right) = parent.right()
+                    if let Some(Node::FromItem(node)) = parent_map.parent(from_item)
+                        && let Some(right) = node.right()
                         && std::ptr::eq(right, from_item)
                     {
-                        self.from_items = parent.left().map(|left| left.into_iter());
+                        self.from_items = node.left().map(|left| left.into_iter());
                         return self.next();
                     }
                 }

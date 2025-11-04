@@ -196,7 +196,7 @@ impl FromItem {
     }
 
     pub fn accept<'a>(&'a self, visitor: &mut impl Visitor<'a>) {
-        visitor.visit_from_item(self);
+        visitor.visit_parent_node(self.into());
         match self {
             Self::Table { table, .. } => {
                 visitor.visit_table_ref(table);
@@ -220,7 +220,7 @@ impl FromItem {
                 right.accept(visitor);
             }
         }
-        visitor.end_from_item();
+        visitor.end_parent_node();
     }
 
     pub fn name(&self) -> Option<&Ident> {
