@@ -14,7 +14,7 @@ use crate::{
     parent_map::ParentMapBuilder,
     part::Alias,
     row::Row,
-    scopes::ScopesBuilder,
+    scopes::Scopes,
     visitor::Visitor,
 };
 
@@ -134,11 +134,7 @@ impl ToTokens for Statement {
                 self.command.accept(&mut builder);
                 builder.build()
             };
-            let scopes = {
-                let mut builder = ScopesBuilder::new();
-                self.command.accept(&mut builder);
-                builder.build()
-            };
+            let scopes = Scopes::from(&self.command);
 
             let command = &self.command;
             let fields = command.fields();

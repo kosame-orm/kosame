@@ -67,8 +67,9 @@ fn main() {
         from schema::posts as smep
         left join kek on true
         left join lateral (
-                select id from schema::comments
-            ) on true
+            select id from schema::comments
+        ) on true
+        left join schema::posts as lul on true
     };
 
     use kosame::sql::FmtSql;
