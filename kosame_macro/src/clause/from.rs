@@ -119,14 +119,14 @@ impl ToTokens for JoinType {
 }
 
 pub struct On {
-    pub _on_token: keyword::on,
+    pub _on_keyword: keyword::on,
     pub expr: Expr,
 }
 
 impl Parse for On {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         Ok(Self {
-            _on_token: input.parse()?,
+            _on_keyword: input.call(keyword::on::parse_autocomplete)?,
             expr: input.parse()?,
         })
     }

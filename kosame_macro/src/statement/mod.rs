@@ -157,7 +157,6 @@ impl ToTokens for Statement {
 
             let module_tokens = quote! {
                 pub mod #module_name {
-
                     pub struct Statement #lifetime {
                         params: Params #lifetime,
                     }

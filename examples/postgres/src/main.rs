@@ -62,19 +62,22 @@ fn main() {
     // println!("{}", sql);
 
     let id = 7;
-    let statement = kosame::pg_statement! {
+
+    let rows = kosame::pg_statement! {
         with cte as (
-            select 5 as pip: i32, 6 as lel
+            select 5 as pip: ::core::primitive::i32, 6 as lel
         )
         select
             subquery.pip
         from schema::posts
         left join cte on true
         left join lateral (
-            select pip from cte
+            select cte.pip
         ) as subquery on true
-    };
-    let rows = statement.exec_vec_sync(&mut client).unwrap();
+    }
+    .exec_vec_sync(&mut client)
+    .unwrap();
+
     rows[0].pip;
 
     println!("{:#?}", rows);
