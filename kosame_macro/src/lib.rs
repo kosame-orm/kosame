@@ -14,7 +14,6 @@ mod query;
 mod quote_option;
 mod row;
 mod schema;
-mod scope;
 mod scopes;
 mod statement;
 mod unique_macro;

@@ -6,23 +6,21 @@ use syn::{
 };
 
 use crate::{
-    clause::WithItem,
-    command::Command,
-    expr::Expr,
-    keyword,
-    parent_map::{Id, ParentMap},
-    part::TableAlias,
-    path_ext::PathExt,
-    quote_option::QuoteOption,
+    clause::WithItem, command::Command, expr::Expr, keyword, parent_map::ParentMap,
+    part::TableAlias, path_ext::PathExt, quote_option::QuoteOption, scopes::ScopeId,
     visitor::Visitor,
 };
 
 pub struct From {
     pub _from: keyword::from,
-    pub item: FromItem,
+    pub chain: FromChain,
 }
 
 impl From {
+    pub fn accept<'a>(&'a self, visitor: &mut impl Visitor<'a>) {
+        self.chain.accept(visitor);
+    }
+
     pub fn parse_optional(input: ParseStream) -> syn::Result<Option<Self>> {
         Self::peek(input).then(|| input.parse()).transpose()
     }
@@ -30,25 +28,177 @@ impl From {
     pub fn peek(input: ParseStream) -> bool {
         input.peek(keyword::from)
     }
-
-    pub fn accept<'a>(&'a self, visitor: &mut impl Visitor<'a>) {
-        self.item.accept(visitor);
-    }
 }
 
 impl Parse for From {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         Ok(Self {
             _from: input.parse()?,
-            item: input.parse()?,
+            chain: input.parse()?,
         })
     }
 }
 
 impl ToTokens for From {
     fn to_tokens(&self, tokens: &mut TokenStream) {
-        let item = &self.item;
+        let item = &self.chain;
         quote! { ::kosame::repr::clause::From::new(#item) }.to_tokens(tokens);
+    }
+}
+
+pub struct FromChain {
+    start: FromItem,
+    combinators: Vec<FromCombinator>,
+}
+
+impl FromChain {
+    pub fn accept<'a>(&'a self, visitor: &mut impl Visitor<'a>) {
+        self.start.accept(visitor);
+        for combinator in &self.combinators {
+            combinator.accept(visitor);
+        }
+    }
+}
+
+impl Parse for FromChain {
+    fn parse(input: ParseStream) -> syn::Result<Self> {
+        Ok(Self {
+            start: input.parse()?,
+            combinators: input.call(FromCombinator::parse_many)?,
+        })
+    }
+}
+
+impl ToTokens for FromChain {
+    fn to_tokens(&self, tokens: &mut TokenStream) {
+        let start = &self.start;
+        let combinators = &self.combinators;
+        quote! {
+            ::kosame::repr::clause::FromChain::new(#start, &[#(#combinators),*])
+        }
+        .to_tokens(tokens);
+    }
+}
+
+pub enum FromItem {
+    Table {
+        table: Path,
+        alias: Option<TableAlias>,
+    },
+    Subquery {
+        lateral_keyword: Option<keyword::lateral>,
+        paren_token: syn::token::Paren,
+        command: Box<Command>,
+        alias: Option<TableAlias>,
+    },
+}
+
+impl FromItem {
+    pub fn accept<'a>(&'a self, visitor: &mut impl Visitor<'a>) {
+        match self {
+            Self::Table { table, .. } => {
+                visitor.visit_table_ref(table);
+            }
+            Self::Subquery { command, .. } => {
+                command.accept(visitor);
+            }
+        }
+    }
+
+    pub fn name(&self) -> Option<&Ident> {
+        match self {
+            Self::Table { table, alias, .. } => Some(
+                alias
+                    .as_ref()
+                    .map(|alias| &alias.name)
+                    .unwrap_or_else(|| &table.segments.last().expect("path cannot be empty").ident),
+            ),
+            Self::Subquery { alias, .. } => alias.as_ref().map(|alias| &alias.name),
+        }
+    }
+
+    pub fn with_item<'a>(&'a self, parent_map: &ParentMap<'a>) -> Option<&'a WithItem> {
+        match self {
+            // Self::Table { table, .. } => {
+            //     let table = table.get_ident()?;
+            //     let mut command = parent_map.seek_parent::<_, Command>(self)?;
+            //     loop {
+            //         if let Some(with) = &command.with {
+            //             for item in with.items.iter() {
+            //                 if item.alias.name == *table {
+            //                     return Some(item);
+            //                 }
+            //             }
+            //         }
+            //         command = parent_map.seek_parent::<_, Command>(command)?;
+            //     }
+            // }
+            _ => None,
+        }
+    }
+}
+
+impl Parse for FromItem {
+    fn parse(input: ParseStream) -> syn::Result<Self> {
+        let lateral_keyword = input
+            .peek(keyword::lateral)
+            .then(|| input.parse())
+            .transpose()?;
+        let lookahead = input.lookahead1();
+        if lookahead.peek(syn::token::Paren) {
+            let content;
+            Ok(Self::Subquery {
+                lateral_keyword,
+                paren_token: parenthesized!(content in input),
+                command: content.parse()?,
+                alias: input.call(TableAlias::parse_optional)?,
+            })
+        } else if lookahead.peek(Ident) {
+            Ok(Self::Table {
+                table: input.parse()?,
+                alias: input.call(TableAlias::parse_optional)?,
+            })
+        } else {
+            Err(lookahead.error())
+        }
+    }
+}
+
+impl ToTokens for FromItem {
+    fn to_tokens(&self, tokens: &mut TokenStream) {
+        match self {
+            Self::Table { table, alias, .. } => {
+                let table = alias
+                    .as_ref()
+                    .map(|alias| &alias.name)
+                    .unwrap_or(&table.segments.last().expect("paths cannot be empty").ident);
+                let alias = QuoteOption::from(alias);
+                let scope_id = ScopeId::of_scope();
+                quote! {
+                    ::kosame::repr::clause::FromItem::Table {
+                        table: scopes::#scope_id::tables::#table::TABLE_NAME,
+                        alias: #alias,
+                    }
+                }
+            }
+            Self::Subquery {
+                lateral_keyword: _lateral_keyword,
+                command,
+                alias,
+                ..
+            } => {
+                let lateral = _lateral_keyword.is_some();
+                let alias = QuoteOption::from(alias);
+                quote! {
+                    ::kosame::repr::clause::FromItem::Subquery {
+                        lateral: #lateral,
+                        command: &#command,
+                        alias: #alias,
+                    }
+                }
+            }
+        }
+        .to_tokens(tokens);
     }
 }
 
@@ -132,243 +282,91 @@ impl Parse for On {
     }
 }
 
-pub enum FromItem {
-    Table {
-        id: Id,
-        table: Path,
-        alias: Option<TableAlias>,
-    },
-    Subquery {
-        id: Id,
-        lateral_keyword: Option<keyword::lateral>,
-        paren_token: syn::token::Paren,
-        command: Box<Command>,
-        alias: Option<TableAlias>,
-    },
+pub enum FromCombinator {
     Join {
-        id: Id,
-        left: Box<FromItem>,
         join_type: JoinType,
         right: Box<FromItem>,
         on: On,
     },
     NaturalJoin {
-        id: Id,
         _natural_keyword: keyword::natural,
-        left: Box<FromItem>,
         join_type: JoinType,
         right: Box<FromItem>,
     },
     CrossJoin {
-        id: Id,
-        left: Box<FromItem>,
         _cross_keyword: keyword::cross,
         _join_keyword: keyword::join,
         right: Box<FromItem>,
     },
 }
 
-impl FromItem {
-    fn parse_prefix(input: ParseStream) -> syn::Result<Self> {
-        let lateral_keyword = input
-            .peek(keyword::lateral)
-            .then(|| input.parse())
-            .transpose()?;
-        let lookahead = input.lookahead1();
-        if lookahead.peek(syn::token::Paren) {
-            let content;
-            Ok(Self::Subquery {
-                id: Id::new(),
-                lateral_keyword,
-                paren_token: parenthesized!(content in input),
-                command: content.parse()?,
-                alias: input.call(TableAlias::parse_optional)?,
+impl FromCombinator {
+    pub fn accept<'a>(&'a self, visitor: &mut impl Visitor<'a>) {
+        match self {
+            Self::Join { right, on, .. } => {
+                right.accept(visitor);
+                on.expr.accept(visitor);
+            }
+            Self::NaturalJoin { right, .. } => {
+                right.accept(visitor);
+            }
+            Self::CrossJoin { right, .. } => {
+                right.accept(visitor);
+            }
+        }
+    }
+
+    pub fn peek(input: ParseStream) -> bool {
+        JoinType::peek(input) || input.peek(keyword::natural) || input.peek(keyword::cross)
+    }
+
+    fn parse_many(input: ParseStream) -> syn::Result<Vec<FromCombinator>> {
+        let mut result = Vec::new();
+        while Self::peek(input) {
+            result.push(input.parse()?);
+        }
+        Ok(result)
+    }
+
+    pub fn right(&self) -> &FromItem {
+        match self {
+            Self::Join { right, .. } => &right,
+            Self::NaturalJoin { right, .. } => &right,
+            Self::CrossJoin { right, .. } => &right,
+        }
+    }
+}
+
+impl Parse for FromCombinator {
+    fn parse(input: ParseStream) -> syn::Result<Self> {
+        if JoinType::peek(input) {
+            Ok(Self::Join {
+                join_type: input.parse()?,
+                right: Box::new(input.parse()?),
+                on: input.parse()?,
             })
-        } else if lookahead.peek(Ident) {
-            Ok(Self::Table {
-                id: Id::new(),
-                table: input.parse()?,
-                alias: input.call(TableAlias::parse_optional)?,
+        } else if input.peek(keyword::natural) {
+            Ok(Self::NaturalJoin {
+                _natural_keyword: input.call(keyword::natural::parse_autocomplete)?,
+                join_type: input.parse()?,
+                right: Box::new(input.parse()?),
+            })
+        } else if input.peek(keyword::cross) {
+            Ok(Self::CrossJoin {
+                _cross_keyword: input.call(keyword::cross::parse_autocomplete)?,
+                _join_keyword: input.call(keyword::join::parse_autocomplete)?,
+                right: Box::new(input.parse()?),
             })
         } else {
-            Err(lookahead.error())
-        }
-    }
-
-    pub fn accept<'a>(&'a self, visitor: &mut impl Visitor<'a>) {
-        visitor.visit_parent_node(self.into());
-        match self {
-            Self::Table { table, .. } => {
-                visitor.visit_table_ref(table);
-            }
-            Self::Subquery { command, .. } => {
-                command.accept(visitor);
-            }
-            Self::Join {
-                left, right, on, ..
-            } => {
-                on.expr.accept(visitor);
-                left.accept(visitor);
-                right.accept(visitor);
-            }
-            Self::NaturalJoin { left, right, .. } => {
-                left.accept(visitor);
-                right.accept(visitor);
-            }
-            Self::CrossJoin { left, right, .. } => {
-                left.accept(visitor);
-                right.accept(visitor);
-            }
-        }
-        visitor.end_parent_node();
-    }
-
-    pub fn name(&self) -> Option<&Ident> {
-        match self {
-            Self::Table { table, alias, .. } => Some(
-                alias
-                    .as_ref()
-                    .map(|alias| &alias.name)
-                    .unwrap_or_else(|| &table.segments.last().expect("path cannot be empty").ident),
-            ),
-            Self::Subquery { alias, .. } => alias.as_ref().map(|alias| &alias.name),
-            Self::Join { .. } => None,
-            Self::NaturalJoin { .. } => None,
-            Self::CrossJoin { .. } => None,
-        }
-    }
-
-    pub fn with_item<'a>(&'a self, parent_map: &ParentMap<'a>) -> Option<&'a WithItem> {
-        match self {
-            Self::Table { table, .. } => {
-                let table = table.get_ident()?;
-                let mut command = parent_map.seek_parent::<_, Command>(self)?;
-                loop {
-                    if let Some(with) = &command.with {
-                        for item in with.items.iter() {
-                            if item.alias.name == *table {
-                                return Some(item);
-                            }
-                        }
-                    }
-                    command = parent_map.seek_parent::<_, Command>(command)?;
-                }
-            }
-            _ => None,
-        }
-    }
-
-    pub fn id(&self) -> &Id {
-        match self {
-            Self::Table { id, .. } => id,
-            Self::Subquery { id, .. } => id,
-            Self::Join { id, .. } => id,
-            Self::NaturalJoin { id, .. } => id,
-            Self::CrossJoin { id, .. } => id,
-        }
-    }
-
-    pub fn left(&self) -> Option<&FromItem> {
-        match self {
-            Self::Join { left, .. } => Some(left),
-            Self::NaturalJoin { left, .. } => Some(left),
-            Self::CrossJoin { left, .. } => Some(left),
-            _ => None,
-        }
-    }
-
-    pub fn right(&self) -> Option<&FromItem> {
-        match self {
-            Self::Join { right, .. } => Some(right),
-            Self::NaturalJoin { right, .. } => Some(right),
-            Self::CrossJoin { right, .. } => Some(right),
-            _ => None,
+            Err(syn::Error::new(input.span(), "expected join"))
         }
     }
 }
 
-impl Parse for FromItem {
-    fn parse(input: ParseStream) -> syn::Result<Self> {
-        let mut item = Self::parse_prefix(input)?;
-        loop {
-            if JoinType::peek(input) {
-                item = FromItem::Join {
-                    id: Id::new(),
-                    left: Box::new(item),
-                    join_type: input.parse()?,
-                    right: Box::new(Self::parse_prefix(input)?),
-                    on: input.parse()?,
-                };
-                continue;
-            }
-            if input.peek(keyword::natural) {
-                item = FromItem::NaturalJoin {
-                    id: Id::new(),
-                    _natural_keyword: input.call(keyword::natural::parse_autocomplete)?,
-                    left: Box::new(item),
-                    join_type: input.parse()?,
-                    right: Box::new(Self::parse_prefix(input)?),
-                };
-            }
-            if input.peek(keyword::cross) {
-                item = FromItem::CrossJoin {
-                    id: Id::new(),
-                    left: Box::new(item),
-                    _cross_keyword: input.call(keyword::cross::parse_autocomplete)?,
-                    _join_keyword: input.call(keyword::join::parse_autocomplete)?,
-                    right: Box::new(Self::parse_prefix(input)?),
-                };
-            }
-            break;
-        }
-        Ok(item)
-    }
-}
-
-impl ToTokens for FromItem {
+impl ToTokens for FromCombinator {
     fn to_tokens(&self, tokens: &mut TokenStream) {
         match self {
-            Self::Table { table, alias, .. } => {
-                let alias = QuoteOption::from(alias);
-                ParentMap::with(|parent_map| match self.with_item(parent_map) {
-                    Some(with_item) => {
-                        let name_string = with_item.alias.name.to_string();
-                        quote! {
-                            ::kosame::repr::clause::FromItem::Table {
-                                table: #name_string,
-                                alias: #alias,
-                            }
-                        }
-                    }
-                    None => {
-                        let table = table.to_call_site(1);
-                        quote! {
-                            ::kosame::repr::clause::FromItem::Table {
-                                table: #table::TABLE_NAME,
-                                alias: #alias,
-                            }
-                        }
-                    }
-                })
-            }
-            Self::Subquery {
-                lateral_keyword: _lateral_keyword,
-                command,
-                alias,
-                ..
-            } => {
-                let lateral = _lateral_keyword.is_some();
-                let alias = QuoteOption::from(alias);
-                quote! {
-                    ::kosame::repr::clause::FromItem::Subquery {
-                        lateral: #lateral,
-                        command: &#command,
-                        alias: #alias,
-                    }
-                }
-            }
             Self::Join {
-                left,
                 join_type,
                 right,
                 on,
@@ -376,33 +374,27 @@ impl ToTokens for FromItem {
             } => {
                 let on = &on.expr;
                 quote! {
-                    ::kosame::repr::clause::FromItem::Join {
-                        left: &#left,
+                    ::kosame::repr::clause::FromCombinator::Join {
                         join_type: #join_type,
-                        right: &#right,
+                        right: #right,
                         on: #on,
                     }
                 }
             }
             Self::NaturalJoin {
-                left,
-                join_type,
-                right,
-                ..
+                join_type, right, ..
             } => {
                 quote! {
-                    ::kosame::repr::clause::FromItem::NaturalJoin {
-                        left: &#left,
+                    ::kosame::repr::clause::FromCombinator::NaturalJoin {
                         join_type: #join_type,
-                        right: &#right,
+                        right: #right,
                     }
                 }
             }
-            Self::CrossJoin { left, right, .. } => {
+            Self::CrossJoin { right, .. } => {
                 quote! {
-                    ::kosame::repr::clause::FromItem::CrossJoin {
-                        left: &#left,
-                        right: &#right,
+                    ::kosame::repr::clause::FromCombinator::CrossJoin {
+                        right: #right,
                     }
                 }
             }
@@ -411,41 +403,32 @@ impl ToTokens for FromItem {
     }
 }
 
-pub struct FromItemIter<'a> {
-    stack: Vec<&'a FromItem>,
+pub struct FromIter<'a> {
+    chain: &'a FromChain,
+    index: i32,
 }
 
-impl<'a> std::convert::From<&'a FromItem> for FromItemIter<'a> {
-    fn from(value: &'a FromItem) -> Self {
-        let mut stack = Vec::<&'a FromItem>::new();
-        stack.push(value);
-        while let Some(left) = stack.last().unwrap().left() {
-            stack.push(left);
-        }
-        Self { stack }
-    }
-}
-
-impl<'a> Iterator for FromItemIter<'a> {
+impl<'a> Iterator for FromIter<'a> {
     type Item = &'a FromItem;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let result = self.stack.pop()?;
-        if let Some(next) = result.right() {
-            self.stack.push(next);
-            while let Some(left) = self.stack.last().unwrap().left() {
-                self.stack.push(left);
-            }
-        }
-        Some(result)
+        let item = match self.index {
+            -1 => &self.chain.start,
+            _ => self.chain.combinators.get(self.index as usize)?.right(),
+        };
+        self.index += 1;
+        Some(item)
     }
 }
 
-impl<'a> IntoIterator for &'a FromItem {
-    type IntoIter = FromItemIter<'a>;
+impl<'a> IntoIterator for &'a FromChain {
+    type IntoIter = FromIter<'a>;
     type Item = &'a FromItem;
 
     fn into_iter(self) -> Self::IntoIter {
-        FromItemIter::from(self)
+        FromIter {
+            index: -1,
+            chain: self,
+        }
     }
 }

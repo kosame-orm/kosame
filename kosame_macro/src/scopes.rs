@@ -260,8 +260,10 @@ impl<'a> From<&'a Command> for Scopes<'a> {
             inherited_with_items: &mut Vec<&'a WithItem>,
             inherited_from_items: &mut Vec<(ScopeId, &'a Ident)>,
         ) {
+            let with_items_truncate = inherited_with_items.len();
+            let from_items_truncate = inherited_from_items.len();
+
             let with_items = {
-                let truncate = inherited_with_items.len();
                 if let Some(with) = &command.with {
                     for item in with.items.iter() {
                         inner(
@@ -281,7 +283,6 @@ impl<'a> From<&'a Command> for Scopes<'a> {
                         with_items.push(*item);
                     }
                 }
-                inherited_with_items.truncate(truncate);
                 with_items
             };
 
@@ -298,16 +299,15 @@ impl<'a> From<&'a Command> for Scopes<'a> {
             }
 
             let from_items = {
-                let truncate = inherited_from_items.len();
-                if let Some(from_item) = command.from_item() {
-                    if let Some(name) = from_item.name() {
-                        shadow.insert(name);
-                    }
+                if let Some(from_chain) = command.from_chain() {
+                    for from_item in from_chain {
+                        if let Some(name) = from_item.name() {
+                            shadow.insert(name);
+                        }
 
-                    for from_item in from_item {
                         let module = if let FromItem::Table { table, alias, .. } = from_item
                             && let Some(table) = table.get_ident()
-                            && let Some(with_item) = inherited_with_items
+                            && let Some(with_item) = with_items
                                 .iter()
                                 .rev()
                                 .find(|with_item| with_item.alias.name == *table)
@@ -366,7 +366,6 @@ impl<'a> From<&'a Command> for Scopes<'a> {
                                         columns: CustomColumn::from_command(command),
                                     })
                                 }
-                                _ => None,
                             }
                         };
                         if let Some(module) = module {
@@ -385,8 +384,6 @@ impl<'a> From<&'a Command> for Scopes<'a> {
                     }
                 }
 
-                inherited_from_items.truncate(truncate);
-
                 Vec::new()
             };
 
@@ -396,6 +393,9 @@ impl<'a> From<&'a Command> for Scopes<'a> {
                 from_items,
                 modules,
             ));
+
+            inherited_with_items.truncate(with_items_truncate);
+            inherited_from_items.truncate(from_items_truncate);
         }
 
         let mut scopes = Vec::new();

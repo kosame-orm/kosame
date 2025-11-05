@@ -66,7 +66,7 @@ impl ToTokens for Delete {
 
 pub struct Using {
     pub _using_keyword: keyword::using,
-    pub item: FromItem,
+    pub chain: FromChain,
 }
 
 impl Using {
@@ -79,7 +79,7 @@ impl Using {
     }
 
     pub fn accept<'a>(&'a self, visitor: &mut impl Visitor<'a>) {
-        self.item.accept(visitor);
+        self.chain.accept(visitor);
     }
 }
 
@@ -87,13 +87,13 @@ impl Parse for Using {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         Ok(Self {
             _using_keyword: input.parse()?,
-            item: input.parse()?,
+            chain: input.parse()?,
         })
     }
 }
 
 impl ToTokens for Using {
     fn to_tokens(&self, tokens: &mut TokenStream) {
-        self.item.to_tokens(tokens);
+        self.chain.to_tokens(tokens);
     }
 }

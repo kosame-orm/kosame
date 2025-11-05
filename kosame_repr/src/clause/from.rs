@@ -3,18 +3,18 @@ use std::fmt::Write;
 use crate::{command::Command, expr::Expr, part::TableAlias};
 
 pub struct From<'a> {
-    item: FromItem<'a>,
+    chain: FromChain<'a>,
 }
 
 impl<'a> From<'a> {
     #[inline]
-    pub const fn new(item: FromItem<'a>) -> Self {
-        Self { item }
+    pub const fn new(chain: FromChain<'a>) -> Self {
+        Self { chain }
     }
 
     #[inline]
-    pub const fn item(&self) -> &FromItem<'a> {
-        &self.item
+    pub const fn chain(&self) -> &FromChain<'a> {
+        &self.chain
     }
 }
 
@@ -24,17 +24,34 @@ impl kosame_sql::FmtSql for From<'_> {
         D: kosame_sql::Dialect,
     {
         formatter.write_str(" from ")?;
-        self.item.fmt_sql(formatter)?;
-
+        self.chain.fmt_sql(formatter)?;
         Ok(())
     }
 }
 
-pub enum JoinType {
-    Inner,
-    Left,
-    Right,
-    Full,
+pub struct FromChain<'a> {
+    start: FromItem<'a>,
+    combinators: &'a [FromCombinator<'a>],
+}
+
+impl<'a> FromChain<'a> {
+    #[inline]
+    pub const fn new(start: FromItem<'a>, combinators: &'a [FromCombinator<'a>]) -> Self {
+        Self { start, combinators }
+    }
+}
+
+impl kosame_sql::FmtSql for FromChain<'_> {
+    fn fmt_sql<D>(&self, formatter: &mut kosame_sql::Formatter<D>) -> kosame_sql::Result
+    where
+        D: kosame_sql::Dialect,
+    {
+        self.start.fmt_sql(formatter)?;
+        for combinator in self.combinators.iter() {
+            combinator.fmt_sql(formatter)?;
+        }
+        Ok(())
+    }
 }
 
 impl kosame_sql::FmtSql for JoinType {
@@ -60,21 +77,6 @@ pub enum FromItem<'a> {
         lateral: bool,
         command: &'a Command<'a>,
         alias: Option<TableAlias<'a>>,
-    },
-    Join {
-        left: &'a FromItem<'a>,
-        join_type: JoinType,
-        right: &'a FromItem<'a>,
-        on: Expr<'a>,
-    },
-    NaturalJoin {
-        left: &'a FromItem<'a>,
-        join_type: JoinType,
-        right: &'a FromItem<'a>,
-    },
-    CrossJoin {
-        left: &'a FromItem<'a>,
-        right: &'a FromItem<'a>,
     },
 }
 
@@ -107,35 +109,60 @@ impl kosame_sql::FmtSql for FromItem<'_> {
                     alias.fmt_sql(formatter)?;
                 }
             }
+        }
+
+        Ok(())
+    }
+}
+
+pub enum JoinType {
+    Inner,
+    Left,
+    Right,
+    Full,
+}
+
+pub enum FromCombinator<'a> {
+    Join {
+        join_type: JoinType,
+        right: FromItem<'a>,
+        on: Expr<'a>,
+    },
+    NaturalJoin {
+        join_type: JoinType,
+        right: FromItem<'a>,
+    },
+    CrossJoin {
+        right: FromItem<'a>,
+    },
+}
+
+impl kosame_sql::FmtSql for FromCombinator<'_> {
+    fn fmt_sql<D>(&self, formatter: &mut kosame_sql::Formatter<D>) -> kosame_sql::Result
+    where
+        D: kosame_sql::Dialect,
+    {
+        match self {
             Self::Join {
-                left,
                 join_type,
                 right,
                 on,
             } => {
-                left.fmt_sql(formatter)?;
                 join_type.fmt_sql(formatter)?;
                 right.fmt_sql(formatter)?;
                 formatter.write_str(" on ")?;
                 on.fmt_sql(formatter)?;
             }
-            Self::NaturalJoin {
-                left,
-                join_type,
-                right,
-            } => {
-                left.fmt_sql(formatter)?;
+            Self::NaturalJoin { join_type, right } => {
                 formatter.write_str(" natural")?;
                 join_type.fmt_sql(formatter)?;
                 right.fmt_sql(formatter)?;
             }
-            Self::CrossJoin { left, right } => {
-                left.fmt_sql(formatter)?;
+            Self::CrossJoin { right } => {
                 formatter.write_str(" cross join ")?;
                 right.fmt_sql(formatter)?;
             }
         }
-
         Ok(())
     }
 }

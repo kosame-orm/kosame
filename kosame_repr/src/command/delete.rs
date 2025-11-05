@@ -4,7 +4,7 @@ use crate::{clause::*, part::TargetTable};
 
 pub struct Delete<'a> {
     target_table: TargetTable<'a>,
-    using: Option<FromItem<'a>>,
+    using: Option<FromChain<'a>>,
     r#where: Option<Where<'a>>,
     returning: Option<Returning<'a>>,
 }
@@ -13,7 +13,7 @@ impl<'a> Delete<'a> {
     #[inline]
     pub const fn new(
         target_table: TargetTable<'a>,
-        using: Option<FromItem<'a>>,
+        using: Option<FromChain<'a>>,
         r#where: Option<Where<'a>>,
         returning: Option<Returning<'a>>,
     ) -> Self {

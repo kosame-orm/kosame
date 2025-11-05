@@ -86,7 +86,6 @@ impl<'a> ParentMap<'a> {
 #[derive(Clone)]
 pub enum Node<'a> {
     Command(&'a Command),
-    FromItem(&'a FromItem),
     WithItem(&'a WithItem),
     ColumnRef(&'a ColumnRef),
 }
@@ -95,7 +94,6 @@ impl Node<'_> {
     fn id(&self) -> &Id {
         match self {
             Self::Command(inner) => &inner.id,
-            Self::FromItem(inner) => inner.id(),
             Self::WithItem(inner) => &inner.id,
             Self::ColumnRef(inner) => &inner.id,
         }
@@ -123,7 +121,6 @@ macro_rules! impl_node_variant {
 }
 
 impl_node_variant!(Command);
-impl_node_variant!(FromItem);
 impl_node_variant!(WithItem);
 impl_node_variant!(ColumnRef);
 

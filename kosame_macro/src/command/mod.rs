@@ -16,7 +16,7 @@ pub use select::*;
 pub use update::*;
 
 use crate::{
-    clause::{Fields, FromItem, With},
+    clause::{Fields, FromChain, With},
     keyword,
     parent_map::Id,
     part::TargetTable,
@@ -54,9 +54,8 @@ impl Command {
         self.command_type.target_table()
     }
 
-    #[allow(clippy::wrong_self_convention)]
-    pub fn from_item(&self) -> Option<&FromItem> {
-        self.command_type.from_item()
+    pub fn from_chain(&self) -> Option<&FromChain> {
+        self.command_type.from_chain()
     }
 }
 
@@ -122,13 +121,12 @@ impl CommandType {
         }
     }
 
-    #[allow(clippy::wrong_self_convention)]
-    pub fn from_item(&self) -> Option<&FromItem> {
+    pub fn from_chain(&self) -> Option<&FromChain> {
         match self {
-            Self::Delete(delete) => delete.using.as_ref().map(|using| &using.item),
+            Self::Delete(delete) => delete.using.as_ref().map(|using| &using.chain),
             Self::Insert(..) => None,
-            Self::Select(select) => select.from.as_ref().map(|from| &from.item),
-            Self::Update(update) => update.from.as_ref().map(|from| &from.item),
+            Self::Select(select) => select.from.as_ref().map(|from| &from.chain),
+            Self::Update(update) => update.from.as_ref().map(|from| &from.chain),
         }
     }
 }
