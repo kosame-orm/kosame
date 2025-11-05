@@ -10,7 +10,7 @@
 
 [![Crates.io](https://img.shields.io/crates/v/kosame.svg?style=flat-square)](https://crates.io/crates/kosame)
 [![Docs.rs](https://img.shields.io/badge/Docs-kosame-66c2a5?style=flat-square&labelColor=555&logo=rust&logoColor=white)](https://docs.rs/kosame)
-[![GitHub](https://img.shields.io/badge/GitHub-kosame-orm%2Fkosame-blue?style=flat-square&logo=github)](https://github.com/kosame-orm/kosame)
+[![GitHub](https://img.shields.io/badge/GitHub-kosame--orm%2Fkosame-blue?style=flat-square&logo=github)](https://github.com/kosame-orm/kosame)
 [![License](https://img.shields.io/crates/l/kosame.svg?style=flat-square)](https://crates.io/crates/kosame)
 
 </div>
