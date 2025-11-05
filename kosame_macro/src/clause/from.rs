@@ -309,9 +309,9 @@ impl FromCombinator {
 
     pub fn right(&self) -> &FromItem {
         match self {
-            Self::Join { right, .. } => &right,
-            Self::NaturalJoin { right, .. } => &right,
-            Self::CrossJoin { right, .. } => &right,
+            Self::Join { right, .. } => right,
+            Self::NaturalJoin { right, .. } => right,
+            Self::CrossJoin { right, .. } => right,
         }
     }
 }

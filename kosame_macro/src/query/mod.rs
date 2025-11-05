@@ -18,6 +18,7 @@ use crate::{
     bind_params::{BindParamsBuilder, BindParamsClosure},
     part::Alias,
     path_ext::PathExt,
+    scopes::ScopeId,
 };
 
 pub struct Query {
@@ -30,6 +31,7 @@ pub struct Query {
 
 impl Parse for Query {
     fn parse(input: ParseStream) -> syn::Result<Self> {
+        ScopeId::reset();
         Ok(Self {
             _inner_attrs: {
                 let attrs = Attribute::parse_inner(input)?;

@@ -13,7 +13,7 @@ use crate::{
     command::Command,
     part::Alias,
     row::Row,
-    scopes::Scopes,
+    scopes::{ScopeId, Scopes},
     visitor::Visitor,
 };
 
@@ -39,6 +39,7 @@ impl Statement {
 
 impl Parse for Statement {
     fn parse(input: ParseStream) -> syn::Result<Self> {
+        ScopeId::reset();
         let token_stream = input.fork().parse()?;
         let inner_attrs = {
             let attrs = input.call(Attribute::parse_inner)?;

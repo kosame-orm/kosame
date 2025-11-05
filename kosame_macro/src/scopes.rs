@@ -299,8 +299,11 @@ impl<'a> From<&'a Command> for Scopes<'a> {
             }
 
             let from_items = {
+                let mut from_items = Vec::new();
+
                 if let Some(from_chain) = command.from_chain() {
                     for from_item in from_chain {
+                        from_items.push(from_item);
                         if let Some(name) = from_item.name() {
                             shadow.insert(name);
                         }
@@ -384,7 +387,7 @@ impl<'a> From<&'a Command> for Scopes<'a> {
                     }
                 }
 
-                Vec::new()
+                from_items
             };
 
             scopes.push(Scope::new(
