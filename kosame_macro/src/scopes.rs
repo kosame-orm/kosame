@@ -11,7 +11,7 @@ use crate::{
 };
 
 thread_local! {
-    static SCOPE_ID_AUTO_INCREMENT: std::sync::atomic::AtomicU32 = const { std::sync::atomic::AtomicU32::new(0) };
+    static SCOPE_ID_AUTO_INCREMENT: Cell<u32> = const { Cell::new(0) };
     static SCOPE_ID_CONTEXT: Cell<Option<ScopeId>> = const { Cell::new(None) };
 }
 
@@ -20,10 +20,9 @@ pub struct ScopeId(u32);
 
 impl ScopeId {
     pub fn new() -> Self {
-        SCOPE_ID_AUTO_INCREMENT.with(|atomic| {
-            let increment = atomic.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
-            Self(increment)
-        })
+        let id = SCOPE_ID_AUTO_INCREMENT.get();
+        SCOPE_ID_AUTO_INCREMENT.set(id + 1);
+        Self(id)
     }
 
     pub fn scope(&self, f: impl FnOnce()) {
@@ -39,9 +38,7 @@ impl ScopeId {
     }
 
     pub fn reset() {
-        SCOPE_ID_AUTO_INCREMENT.with(|atomic| {
-            atomic.store(0, std::sync::atomic::Ordering::Relaxed);
-        })
+        SCOPE_ID_AUTO_INCREMENT.set(0)
     }
 }
 
