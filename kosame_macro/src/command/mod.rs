@@ -17,6 +17,7 @@ pub use update::*;
 
 use crate::{
     clause::{Fields, FromChain, With},
+    correlations::CorrelationId,
     keyword,
     part::TargetTable,
     quote_option::QuoteOption,
@@ -28,6 +29,7 @@ pub struct Command {
     pub attrs: Vec<Attribute>,
     pub with: Option<With>,
     pub command_type: CommandType,
+    pub correlation_id: CorrelationId,
     pub scope_id: ScopeId,
 }
 
@@ -62,6 +64,7 @@ impl Parse for Command {
             attrs: input.call(Attribute::parse_outer)?,
             with: input.call(With::parse_optional)?,
             command_type: input.parse()?,
+            correlation_id: CorrelationId::new(),
             scope_id: ScopeId::new(),
         })
     }

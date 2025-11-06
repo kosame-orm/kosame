@@ -8,6 +8,7 @@ use syn::{
 
 use crate::{
     command::{Command, CommandType},
+    correlations::CorrelationId,
     keyword,
     part::TableAlias,
     visitor::Visitor,
@@ -71,6 +72,7 @@ pub struct WithItem {
     pub _as_token: Token![as],
     pub _paren_token: syn::token::Paren,
     pub command: Command,
+    pub correlation_id: CorrelationId,
 }
 
 impl WithItem {
@@ -99,6 +101,7 @@ impl Parse for WithItem {
             _as_token: input.parse()?,
             _paren_token: parenthesized!(content in input),
             command: content.parse()?,
+            correlation_id: CorrelationId::new(),
         })
     }
 }

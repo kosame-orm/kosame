@@ -11,6 +11,7 @@ use crate::{
     attribute::{CustomMeta, MetaLocation},
     bind_params::{BindParamsBuilder, BindParamsClosure},
     command::Command,
+    correlations::{CorrelationId, Correlations},
     part::Alias,
     row::Row,
     scopes::{ScopeId, Scopes},
@@ -39,7 +40,9 @@ impl Statement {
 
 impl Parse for Statement {
     fn parse(input: ParseStream) -> syn::Result<Self> {
+        CorrelationId::reset();
         ScopeId::reset();
+
         let token_stream = input.fork().parse()?;
         let inner_attrs = {
             let attrs = input.call(Attribute::parse_inner)?;
@@ -127,6 +130,7 @@ impl ToTokens for Statement {
             self.command.accept(&mut builder);
             builder.build()
         };
+        let correlations = Correlations::from(&self.command);
         let scopes = Scopes::from(&self.command);
 
         let command = &self.command;
@@ -172,6 +176,7 @@ impl ToTokens for Statement {
                 #row
 
                 #bind_params
+                #correlations
                 #scopes
             }
         };

@@ -142,11 +142,17 @@ impl ToTokens for Scope<'_> {
                 .name()
                 .map(|name| custom_tokens(name, &from_item.columns(Some(with_item)))),
             ScopeItem::FromItem {
-                from_item: FromItem::Table { table, alias },
+                from_item:
+                    FromItem::Table {
+                        table_path, alias, ..
+                    },
                 inherited_from: None,
                 resolved_with_item: None,
                 ..
-            } => Some(table_tokens(table, alias.as_ref().map(|alias| &alias.name))),
+            } => Some(table_tokens(
+                table_path.as_path(),
+                alias.as_ref().map(|alias| &alias.name),
+            )),
             ScopeItem::FromItem {
                 from_item: from_item @ FromItem::Subquery { alias, .. },
                 inherited_from: None,
@@ -234,7 +240,7 @@ impl<'a> From<&'a Command> for Scopes<'a> {
                     }
 
                     let with_item = match from_item {
-                        FromItem::Table { table, .. } => match table.get_ident() {
+                        FromItem::Table { table_path, .. } => match table_path.get_ident() {
                             Some(table) => inherited_with_items
                                 .iter()
                                 .rev()

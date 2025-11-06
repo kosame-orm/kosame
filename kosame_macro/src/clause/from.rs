@@ -6,8 +6,15 @@ use syn::{
 };
 
 use crate::{
-    clause::WithItem, command::Command, expr::Expr, keyword, part::TableAlias,
-    quote_option::QuoteOption, scopes::ScopeId, visitor::Visitor,
+    clause::WithItem,
+    command::Command,
+    correlations::CorrelationId,
+    expr::Expr,
+    keyword,
+    part::{TableAlias, TablePath},
+    quote_option::QuoteOption,
+    scopes::ScopeId,
+    visitor::Visitor,
 };
 
 pub struct From {
@@ -81,22 +88,24 @@ impl ToTokens for FromChain {
 
 pub enum FromItem {
     Table {
-        table: Path,
+        table_path: TablePath,
         alias: Option<TableAlias>,
+        correlation_id: CorrelationId,
     },
     Subquery {
         lateral_keyword: Option<keyword::lateral>,
         paren_token: syn::token::Paren,
         command: Box<Command>,
         alias: Option<TableAlias>,
+        correlation_id: CorrelationId,
     },
 }
 
 impl FromItem {
     pub fn accept<'a>(&'a self, visitor: &mut impl Visitor<'a>) {
         match self {
-            Self::Table { table, .. } => {
-                visitor.visit_table_ref(table);
+            Self::Table { table_path, .. } => {
+                table_path.accept(visitor);
             }
             Self::Subquery { command, .. } => {
                 command.accept(visitor);
@@ -106,19 +115,32 @@ impl FromItem {
 
     pub fn name(&self) -> Option<&Ident> {
         match self {
-            Self::Table { table, alias, .. } => Some(
-                alias
-                    .as_ref()
-                    .map(|alias| &alias.name)
-                    .unwrap_or_else(|| &table.segments.last().expect("path cannot be empty").ident),
-            ),
+            Self::Table {
+                table_path, alias, ..
+            } => Some(alias.as_ref().map(|alias| &alias.name).unwrap_or_else(|| {
+                &table_path
+                    .as_path()
+                    .segments
+                    .last()
+                    .expect("path cannot be empty")
+                    .ident
+            })),
             Self::Subquery { alias, .. } => alias.as_ref().map(|alias| &alias.name),
+        }
+    }
+
+    pub fn correlation_id(&self) -> CorrelationId {
+        match self {
+            Self::Table { correlation_id, .. } => *correlation_id,
+            Self::Subquery { correlation_id, .. } => *correlation_id,
         }
     }
 
     pub fn columns<'a>(&'a self, with_item: Option<&'a WithItem>) -> Vec<&'a Ident> {
         match self {
-            Self::Table { table, alias } => match with_item {
+            Self::Table {
+                table_path, alias, ..
+            } => match with_item {
                 Some(with_item) => with_item.columns(),
                 None => match alias {
                     Some(
@@ -154,11 +176,13 @@ impl Parse for FromItem {
                 paren_token: parenthesized!(content in input),
                 command: content.parse()?,
                 alias: input.call(TableAlias::parse_optional)?,
+                correlation_id: CorrelationId::new(),
             })
         } else if lookahead.peek(Ident) {
             Ok(Self::Table {
-                table: input.parse()?,
+                table_path: input.parse()?,
                 alias: input.call(TableAlias::parse_optional)?,
+                correlation_id: CorrelationId::new(),
             })
         } else {
             Err(lookahead.error())
@@ -169,11 +193,17 @@ impl Parse for FromItem {
 impl ToTokens for FromItem {
     fn to_tokens(&self, tokens: &mut TokenStream) {
         match self {
-            Self::Table { table, alias, .. } => {
-                let table = alias
-                    .as_ref()
-                    .map(|alias| &alias.name)
-                    .unwrap_or(&table.segments.last().expect("paths cannot be empty").ident);
+            Self::Table {
+                table_path, alias, ..
+            } => {
+                let table = alias.as_ref().map(|alias| &alias.name).unwrap_or(
+                    &table_path
+                        .as_path()
+                        .segments
+                        .last()
+                        .expect("paths cannot be empty")
+                        .ident,
+                );
                 let alias = QuoteOption::from(alias);
                 let scope_id = ScopeId::of_scope();
                 quote! {

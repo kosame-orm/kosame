@@ -1,14 +1,13 @@
 use syn::{
-    Ident, Path, PathSegment, Token,
+    Ident, Path,
     parse::{Parse, ParseStream},
-    punctuated::Punctuated,
 };
 
-use crate::visitor::Visitor;
+use crate::{correlations::CorrelationId, visitor::Visitor};
 
 pub struct TablePath {
-    pub leading_colon: Option<Token![::]>,
-    pub segments: Punctuated<Ident, Token![::]>,
+    pub path: Path,
+    pub correlation_id: CorrelationId,
 }
 
 impl TablePath {
@@ -17,40 +16,19 @@ impl TablePath {
     }
 
     pub fn get_ident(&self) -> Option<&Ident> {
-        if self.leading_colon.is_some() || self.segments.len() > 1 {
-            return None;
-        }
-        self.segments.last()
+        self.path.get_ident()
     }
 
-    pub fn to_path(&self) -> Path {
-        Path {
-            leading_colon: self.leading_colon,
-            segments: self
-                .segments
-                .iter()
-                .map(|ident| PathSegment {
-                    ident: ident.clone(),
-                    arguments: syn::PathArguments::None,
-                })
-                .collect(),
-        }
+    pub fn as_path(&self) -> &Path {
+        &self.path
     }
 }
 
 impl Parse for TablePath {
     fn parse(input: ParseStream) -> syn::Result<Self> {
-        let leading_colon = input.peek(Token![::]).then(|| input.parse()).transpose()?;
-        let mut segments = Punctuated::new();
-        segments.push_value(input.parse()?);
-        while input.peek(Token![::]) {
-            segments.push_punct(input.parse()?);
-            segments.push_value(input.parse()?);
-        }
-
-        Ok(Self {
-            leading_colon,
-            segments,
+        Ok(TablePath {
+            path: input.parse()?,
+            correlation_id: CorrelationId::new(),
         })
     }
 }
