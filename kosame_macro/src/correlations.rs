@@ -86,6 +86,20 @@ impl<'a> Correlation<'a> {
             Self::FromItem(inner) => inner.correlation_id(),
         }
     }
+
+    fn source_id(&self) -> Option<CorrelationId> {
+        match self {
+            Self::Table(_, with_item) => {
+                with_item.as_ref().map(|with_item| with_item.correlation_id)
+            }
+            Self::Command(_) => None,
+            Self::WithItem(inner) => Some(inner.command.correlation_id),
+            Self::FromItem(inner) => match inner {
+                FromItem::Table { table_path, .. } => Some(table_path.correlation_id),
+                FromItem::Subquery { command, .. } => Some(command.correlation_id),
+            },
+        }
+    }
 }
 
 impl ToTokens for Correlation<'_> {

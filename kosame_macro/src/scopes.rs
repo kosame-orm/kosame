@@ -2,12 +2,11 @@ use std::{cell::Cell, collections::HashSet};
 
 use proc_macro2::TokenStream;
 use quote::{ToTokens, format_ident, quote};
-use syn::{Ident, Path};
 
 use crate::{
     clause::{FromItem, WithItem},
     command::Command,
-    path_ext::PathExt,
+    correlations::CorrelationId,
 };
 
 thread_local! {
@@ -127,6 +126,14 @@ pub enum ScopeItem<'a> {
         inherited_from: Option<ScopeId>,
         nullable: bool,
     },
+}
+
+impl<'a> ScopeItem<'a> {
+    pub fn correlation_id(&self) -> CorrelationId {
+        match self {
+            Self::FromItem { from_item, .. } => from_item.correlation_id(),
+        }
+    }
 }
 
 impl<'a> From<&'a Command> for Scopes<'a> {
