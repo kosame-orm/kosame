@@ -68,7 +68,8 @@ fn main() {
             select 5 as pip: ::core::primitive::i32, 6 as lel
         )
         select
-            subquery.pip
+            subquery.pip,
+            title,
         from schema::posts
         left join cte on true
         left join lateral (

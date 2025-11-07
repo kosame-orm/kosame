@@ -85,82 +85,15 @@ impl ToTokens for Scope<'_> {
     fn to_tokens(&self, tokens: &mut TokenStream) {
         let name = &self.id;
 
-        fn table_tokens(path: &Path, alias: Option<&Ident>) -> TokenStream {
-            match alias {
-                Some(alias) => {
-                    let path = path.to_call_site(5);
-                    let table_name = alias.to_string();
+        let correlations = self.items.iter().filter_map(|item| match item {
+            ScopeItem::FromItem { from_item, .. } => {
+                let correlation_id = from_item.correlation_id();
+                from_item.name().map(|name| {
                     quote! {
-                        pub mod #alias {
-                            pub const TABLE_NAME: &str = #table_name;
-                            pub use #path::columns;
-                        }
+                        pub use super::super::super::correlations::#correlation_id as #name;
                     }
-                }
-                None => {
-                    let path = path.to_call_site(4);
-                    quote! { pub use #path; }
-                }
+                })
             }
-        }
-
-        fn custom_tokens(name: &Ident, columns: &[&Ident]) -> TokenStream {
-            let name_string = name.to_string();
-            let column_strings = columns.iter().map(|column| column.to_string());
-            quote! {
-                pub mod #name {
-                    pub const TABLE_NAME: &str = #name_string;
-                    pub mod columns {
-                        #(
-                            pub mod #columns {
-                                pub const COLUMN_NAME: &str = #column_strings;
-                            }
-                        )*
-                    }
-                }
-            }
-        }
-
-        fn inherit_tokens(scope_id: ScopeId, name: &Ident) -> TokenStream {
-            quote! {
-                pub use super::super::#scope_id::tables::#name;
-            }
-        }
-
-        let tables = self.items.iter().filter_map(|item| match item {
-            ScopeItem::FromItem {
-                from_item,
-                inherited_from: Some(scope_id),
-                ..
-            } => from_item.name().map(|name| inherit_tokens(*scope_id, name)),
-            ScopeItem::FromItem {
-                from_item,
-                inherited_from: None,
-                resolved_with_item: Some(with_item),
-                ..
-            } => from_item
-                .name()
-                .map(|name| custom_tokens(name, &from_item.columns(Some(with_item)))),
-            ScopeItem::FromItem {
-                from_item:
-                    FromItem::Table {
-                        table_path, alias, ..
-                    },
-                inherited_from: None,
-                resolved_with_item: None,
-                ..
-            } => Some(table_tokens(
-                table_path.as_path(),
-                alias.as_ref().map(|alias| &alias.name),
-            )),
-            ScopeItem::FromItem {
-                from_item: from_item @ FromItem::Subquery { alias, .. },
-                inherited_from: None,
-                resolved_with_item: None,
-                ..
-            } => alias
-                .as_ref()
-                .map(|alias| custom_tokens(&alias.name, &from_item.columns(None))),
         });
 
         let columns = self.items.iter().filter_map(|item| match item {
@@ -175,7 +108,7 @@ impl ToTokens for Scope<'_> {
         quote! {
             pub mod #name {
                 pub mod tables {
-                    #(#tables)*
+                    #(#correlations)*
                 }
                 pub mod columns {
                     #(pub use super::tables::#columns::columns::*;)*
@@ -190,8 +123,8 @@ impl ToTokens for Scope<'_> {
 pub enum ScopeItem<'a> {
     FromItem {
         from_item: &'a FromItem,
+        with_item: Option<&'a WithItem>,
         inherited_from: Option<ScopeId>,
-        resolved_with_item: Option<&'a WithItem>,
         nullable: bool,
     },
 }
@@ -253,7 +186,7 @@ impl<'a> From<&'a Command> for Scopes<'a> {
                     items.push(ScopeItem::FromItem {
                         from_item,
                         inherited_from: None,
-                        resolved_with_item: with_item.copied(),
+                        with_item: with_item.copied(),
                         nullable: false,
                     });
                 }
@@ -269,7 +202,7 @@ impl<'a> From<&'a Command> for Scopes<'a> {
                     items.push(ScopeItem::FromItem {
                         from_item,
                         inherited_from: Some(*inherited_from),
-                        resolved_with_item: None,
+                        with_item: None,
                         nullable: false,
                     });
                 }
