@@ -33,13 +33,7 @@ pub fn resolve_type(
 ) -> Option<Path> {
     let mut inferred_type = correlations.infer_type(correlation_id, column)?;
     let mut combined_nullable = false;
-    let mut counter = 0;
-    loop {
-        counter += 1;
-        println!("{:#?}", inferred_type);
-        if counter > 100 {
-            panic!("rip");
-        }
+    for _ in 0..1024 {
         match inferred_type {
             InferredType::RustType(rust_type) => return Some(rust_type.clone()),
             InferredType::Scope {
@@ -66,4 +60,5 @@ pub fn resolve_type(
             }
         }
     }
+    panic!("infinite type inference loop detected");
 }

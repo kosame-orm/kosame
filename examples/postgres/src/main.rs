@@ -79,7 +79,5 @@ fn main() {
     .exec_vec_sync(&mut client)
     .unwrap();
 
-    rows[0].pip;
-
     println!("{:#?}", rows);
 }

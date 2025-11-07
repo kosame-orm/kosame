@@ -1,4 +1,4 @@
-use proc_macro_error::abort;
+use proc_macro_error::{abort, emit_error};
 use proc_macro2::TokenStream;
 use quote::{ToTokens, quote};
 use syn::{
@@ -33,26 +33,28 @@ impl Field {
         correlations: &Correlations<'_>,
         scopes: &Scopes<'_>,
         correlation_id: CorrelationId,
-    ) -> RowField {
+    ) -> Option<RowField> {
         let Some(name) = self.infer_name() else {
-            abort!(
+            emit_error!(
                 self.expr.span(),
                 "field name cannot be inferred";
                 help = "consider adding an alias using `as my_alias`"
             );
+            return None;
         };
         let Some(resolved_type) = resolve_type(correlations, scopes, correlation_id, name) else {
-            abort!(
+            emit_error!(
                 self.expr.span(),
-                "field name cannot be inferred";
+                "field type cannot be inferred";
                 help = "consider adding an type override using `: RustType`"
             );
+            return None;
         };
-        RowField::new(
+        Some(RowField::new(
             self.attrs.clone(),
             name.clone(),
             resolved_type.to_call_site(1).to_token_stream(),
-        )
+        ))
     }
 
     pub fn accept<'a>(&'a self, visitor: &mut impl Visitor<'a>) {
@@ -66,7 +68,7 @@ impl Field {
             .or_else(|| self.expr.infer_name())
     }
 
-    pub fn infer_type(&self, scope_id: ScopeId) -> Option<InferredType> {
+    pub fn infer_type<'a>(&'a self, scope_id: ScopeId) -> Option<InferredType<'a>> {
         self.type_override
             .as_ref()
             .map(|type_override| InferredType::RustType(&type_override.type_path))
