@@ -96,7 +96,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
                 content,
                 upvotes,
 
-                order by comments.upvotes desc
+                order by upvotes desc
                 limit 5
             }
         }
