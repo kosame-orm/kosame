@@ -18,7 +18,7 @@ pub trait Query {
 
     fn params(&self) -> &Self::Params;
 
-    fn exec<'c, C>(
+    fn query_vec<'c, C>(
         &self,
         connection: &mut C,
         runner: &mut (impl Runner + ?Sized),
@@ -31,7 +31,7 @@ pub trait Query {
         async { runner.run(connection, self).await }
     }
 
-    fn exec_one<'c, C>(
+    fn query_one<'c, C>(
         &self,
         connection: &mut C,
         runner: &mut (impl Runner + ?Sized),
@@ -42,13 +42,13 @@ pub trait Query {
         for<'b> Self::Row: From<&'b C::Row>,
     {
         async {
-            self.exec_opt(connection, runner)
+            self.query_opt(connection, runner)
                 .await
                 .and_then(|res| res.ok_or(Error::RowCount))
         }
     }
 
-    fn exec_opt<'c, C>(
+    fn query_opt<'c, C>(
         &self,
         connection: &mut C,
         runner: &mut (impl Runner + ?Sized),
@@ -59,7 +59,7 @@ pub trait Query {
         for<'b> Self::Row: From<&'b C::Row>,
     {
         async {
-            self.exec(connection, runner).await.and_then(|res| {
+            self.query_vec(connection, runner).await.and_then(|res| {
                 let mut iter = res.into_iter();
                 let row = iter.next();
                 if row.is_some() && iter.next().is_some() {
@@ -70,7 +70,7 @@ pub trait Query {
         }
     }
 
-    fn exec_sync<'c, C>(
+    fn query_sync<'c, C>(
         &self,
         connection: &mut C,
         runner: &mut (impl Runner + ?Sized),
@@ -80,10 +80,10 @@ pub trait Query {
         Self::Params: Params<C::Params<'c>>,
         for<'b> Self::Row: From<&'b C::Row>,
     {
-        self.exec(connection, runner).block_on()
+        self.query_vec(connection, runner).block_on()
     }
 
-    fn exec_one_sync<'c, C>(
+    fn query_one_sync<'c, C>(
         &self,
         connection: &mut C,
         runner: &mut (impl Runner + ?Sized),
@@ -93,10 +93,10 @@ pub trait Query {
         Self::Params: Params<C::Params<'c>>,
         for<'b> Self::Row: From<&'b C::Row>,
     {
-        self.exec_one(connection, runner).block_on()
+        self.query_one(connection, runner).block_on()
     }
 
-    fn exec_opt_sync<'c, C>(
+    fn query_opt_sync<'c, C>(
         &self,
         connection: &mut C,
         runner: &mut (impl Runner + ?Sized),
@@ -106,6 +106,6 @@ pub trait Query {
         Self::Params: Params<C::Params<'c>>,
         for<'b> Self::Row: From<&'b C::Row>,
     {
-        self.exec_opt(connection, runner).block_on()
+        self.query_opt(connection, runner).block_on()
     }
 }
