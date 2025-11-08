@@ -1,4 +1,4 @@
-use kosame::statement::Statement;
+use kosame::prelude::*;
 
 // Declare your database schema.
 mod schema {
@@ -42,24 +42,18 @@ fn main() {
     )
     .unwrap();
 
-    // let rows = kosame::pg_query! {
-    //     schema::posts {
-    //         *,
-    //         comments {
-    //             *
-    //         }
-    //     }
-    // }
-    // .exec_sync(&mut client, &mut RecordArrayRunner {})
-    // .unwrap();
-    //
+    let rows = kosame::pg_query! {
+        schema::posts {
+            *,
+            comments {
+                *
+            }
+        }
+    }
+    .query_sync(&mut client, &mut RecordArrayRunner {})
+    .unwrap();
 
-    // use kosame::sql::FmtSql;
-    // let sql = statement
-    //     .repr()
-    //     .to_sql_string::<kosame::sql::postgres::Dialect>()
-    //     .unwrap();
-    // println!("{}", sql);
+    println!("{:#?}", rows);
 
     let id = 7;
 

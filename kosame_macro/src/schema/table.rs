@@ -99,6 +99,36 @@ impl ToTokens for Table {
                 .collect(),
         );
 
+        let star_macro = {
+            let unique_macro_name = unique_macro!("__kosame_star_{}", self.name.span());
+            let fields = self.columns.iter().map(|column| {
+                let column_name = column.rust_name();
+                RowField::new(
+                    vec![],
+                    column_name.clone(),
+                    quote! { $($table_path)* ::columns::#column_name::Type },
+                )
+            });
+
+            quote! {
+                #[macro_export]
+                macro_rules! #unique_macro_name {
+                    (
+                        ($($table_path:tt)*)
+                        $(#[$meta:meta])* pub struct $name:ident { $($tokens:tt)* }
+                    ) => {
+                        $(#[$meta])*
+                        pub struct $name {
+                            #(#fields,)*
+                            $($tokens)*
+                        }
+                    }
+                }
+
+                pub use #unique_macro_name as star;
+            }
+        };
+
         let inject_macro = {
             let unique_macro_name = unique_macro!("__kosame_inject_{}", self.name.span());
             let token_stream = &self._token_stream;
@@ -150,6 +180,7 @@ impl ToTokens for Table {
 
                 #select_struct
 
+                #star_macro
                 #inject_macro
             }
         }

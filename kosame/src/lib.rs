@@ -8,6 +8,7 @@ pub mod keyword;
 pub mod driver;
 mod error;
 pub mod params;
+pub mod prelude;
 pub mod query;
 pub mod relation;
 pub mod statement;
