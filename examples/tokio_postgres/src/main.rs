@@ -226,6 +226,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     //     },
     // ]
 
+    // With the "serde" feature enabled, the result of a statement or query can be serialized.
+    println!("{}", serde_json::to_string(&rows).unwrap());
+    // [{"id":0,"top_comment_id":null,"total_upvotes":0,"raw_sql":true},{"id":1,"top_comment_id":2,"total_upvotes":1,"raw_sql":true}]
+
     Ok(())
 }
 
