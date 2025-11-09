@@ -285,6 +285,10 @@ impl<'a> From<&'a Command> for Correlations<'a> {
                 }
             }
 
+            if let Some(target_table) = command.target_table() {
+                correlations.push(Correlation::Table(&target_table.table, None));
+            }
+
             if let Some(from_chain) = command.from_chain() {
                 for from_item in from_chain {
                     correlations.push(Correlation::FromItem(from_item));

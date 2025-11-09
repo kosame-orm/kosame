@@ -9,6 +9,7 @@ use crate::{
     command::Command,
     correlations::CorrelationId,
     inferred_type::InferredType,
+    part::TargetTable,
     query::{self, Query},
 };
 
@@ -117,32 +118,20 @@ impl ToTokens for Scope<'_> {
     fn to_tokens(&self, tokens: &mut TokenStream) {
         let name = &self.id;
 
-        let correlations = self.items.iter().filter_map(|item| match item {
-            ScopeItem::FromItem { from_item, .. } => {
-                let correlation_id = from_item.correlation_id();
-                from_item.name().map(|name| {
-                    quote! {
-                        pub use super::super::super::correlations::#correlation_id as #name;
-                    }
-                })
-            }
-            ScopeItem::QueryNode { node, name, .. } => {
-                let correlation_id = node.correlation_id;
-                Some(quote! {
+        let correlations = self.items.iter().filter_map(|item| {
+            item.name().map(|name| {
+                let correlation_id = item.correlation_id();
+                quote! {
                     pub use super::super::super::correlations::#correlation_id as #name;
-                })
-            }
+                }
+            })
         });
 
-        let columns = self.items.iter().filter_map(|item| match item {
-            ScopeItem::FromItem {
-                from_item,
-                inherited_from: None,
-                ..
-            } => from_item.name(),
-            ScopeItem::QueryNode { name, .. } => Some(name),
-            _ => None,
-        });
+        let columns = self
+            .items
+            .iter()
+            .filter(|item| !item.is_inherited())
+            .filter_map(|item| item.name());
 
         quote! {
             pub mod #name {
@@ -159,6 +148,9 @@ impl ToTokens for Scope<'_> {
 }
 
 pub enum ScopeItem<'a> {
+    TargetTable {
+        target_table: &'a TargetTable,
+    },
     FromItem {
         from_item: &'a FromItem,
         with_item: Option<&'a WithItem>,
@@ -174,6 +166,7 @@ pub enum ScopeItem<'a> {
 impl<'a> ScopeItem<'a> {
     pub fn correlation_id(&self) -> CorrelationId {
         match self {
+            Self::TargetTable { target_table, .. } => target_table.table.correlation_id,
             Self::FromItem { from_item, .. } => from_item.correlation_id(),
             Self::QueryNode { node, .. } => node.correlation_id,
         }
@@ -181,6 +174,7 @@ impl<'a> ScopeItem<'a> {
 
     pub fn name(&self) -> Option<&Ident> {
         match self {
+            Self::TargetTable { target_table, .. } => Some(target_table.name()),
             Self::FromItem { from_item, .. } => from_item.name(),
             Self::QueryNode { name, .. } => Some(name),
         }
@@ -188,7 +182,16 @@ impl<'a> ScopeItem<'a> {
 
     pub fn nullable(&self) -> bool {
         match self {
+            Self::TargetTable { .. } => false,
             Self::FromItem { nullable, .. } => *nullable,
+            Self::QueryNode { .. } => false,
+        }
+    }
+
+    pub fn is_inherited(&self) -> bool {
+        match self {
+            Self::TargetTable { .. } => false,
+            Self::FromItem { inherited_from, .. } => inherited_from.is_some(),
             Self::QueryNode { .. } => false,
         }
     }
@@ -209,10 +212,6 @@ impl<'a> From<&'a Command> for Scopes<'a> {
             let mut items = Vec::new();
             let mut shadow = HashSet::new();
 
-            if let Some(target_table) = command.target_table() {
-                shadow.insert(target_table.name());
-            }
-
             if let Some(with) = &command.with {
                 for with_item in &with.items {
                     inner(
@@ -223,6 +222,11 @@ impl<'a> From<&'a Command> for Scopes<'a> {
                     );
                     inherited_with_items.push(with_item);
                 }
+            }
+
+            if let Some(target_table) = command.target_table() {
+                shadow.insert(target_table.name());
+                items.push(ScopeItem::TargetTable { target_table });
             }
 
             if let Some(from_chain) = command.from_chain() {

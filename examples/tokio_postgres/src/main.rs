@@ -73,19 +73,20 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     // Upvote a comment using `UPDATE`.
     let comment_id = 2;
-    // pg_statement! {
-    //     update
-    //         schema::comments
-    //     set
-    //         upvotes = upvotes + 1
-    //     where
-    //         id = :comment_id
-    // }
-    // .exec(&mut client)
-    // .await?;
+    pg_statement! {
+        update
+            schema::comments
+        set
+            upvotes = upvotes + 1
+        where
+            id = :comment_id
+    }
+    .exec(&mut client)
+    .await?;
 
     use kosame::pg_query;
 
+    let post_id = 1;
     let rows = pg_query! {
         schema::posts {
             *,
@@ -99,9 +100,11 @@ async fn main() -> Result<(), Box<dyn Error>> {
                 order by upvotes desc
                 limit 5
             }
+
+            where id = :post_id
         }
     }
-    .query_vec(&mut client)
+    .query_opt(&mut client)
     .await?;
     println!("{:#?}", rows);
 
