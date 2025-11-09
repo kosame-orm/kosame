@@ -1,8 +1,6 @@
-use std::error::Error;
-
 use kosame::prelude::*;
 
-// Declare your database schema.
+// Declare your database schema. You may split the schema into multiple Rust modules.
 mod schema {
     use kosame::pg_table;
 
@@ -35,24 +33,26 @@ mod schema {
         // You may also define the inverse relation if you need it.
         post: (post_id) => posts (id),
     }
+
+    // The `kosame::pg_table!` macro is a shorthand for `kosame::table!` with the driver
+    // attribute `#![kosame(driver = "tokio-postgres")]` prefilled. The same applies to
+    // `kosame::pg_statement!` and `kosame::pg_query!`.
 }
 
 #[tokio::main]
-async fn main() -> Result<(), Box<dyn Error>> {
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut client = connect().await;
 
-    use kosame::pg_statement;
-
     // Let's start by clearing the tables using `DELETE FROM` statements.
-    pg_statement! { delete from schema::posts }
+    kosame::pg_statement! { delete from schema::posts }
         .exec(&mut client)
         .await?;
-    pg_statement! { delete from schema::comments }
+    kosame::pg_statement! { delete from schema::comments }
         .exec(&mut client)
         .await?;
 
     // Insert some demo data using `INSERT INTO`.
-    pg_statement! {
+    kosame::pg_statement! {
         insert into schema::posts
         values
             (0, "my post", "hi, this is a post"),
@@ -61,7 +61,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     }
     .exec(&mut client)
     .await?;
-    pg_statement! {
+    kosame::pg_statement! {
         insert into schema::comments
         values
             (0, 2, "wow very insightful"),
@@ -73,39 +73,118 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     // Upvote a comment using `UPDATE`.
     let comment_id = 2;
-    pg_statement! {
+    let new_upvotes = kosame::pg_statement! {
         update
             schema::comments
         set
             upvotes = upvotes + 1
         where
+            // The `comment_id` variable above is used as a bind parameter in this expression.
             id = :comment_id
+        returning
+            // We can return the updated value. Kosame infers the result type of this statement
+            // to be `struct Row { new_upvotes: i32 }` without a database connection.
+            comments.upvotes as new_upvotes
     }
-    .exec(&mut client)
-    .await?;
+    // With the `RETURNING` clause we can use `query` instead of `exec`.
+    .query_one(&mut client)
+    .await?
+    .new_upvotes;
 
-    use kosame::pg_query;
+    println!("{new_upvotes}"); // 1
 
+    // Now let's perform a relational query. Relational queries fetch arbitrarily nested 1:N
+    // (or 1:1) relationships in the requested shape, so that you do not need to manually
+    // convert flat SQL tables into a struct hierarchy.
+
+    // We want to read the post with ID = 1, together with its top five comments.
     let post_id = 1;
-    let rows = pg_query! {
+    let rows = kosame::pg_query! {
+        // Attributes appearing here will be applied to all generated result structs.
+        #[derive(Clone)]
         schema::posts {
-            *,
-            content is not null as has_content: bool,
+            *, // Select all fields from the posts table.
 
+            // Query related comments according to the relation defined in the schema.
             comments {
+                // To save bandwidth, we select only the fields we need here.
                 id,
+
+                // Attributes on fields will also be applied to the result type fields.
+                #[serde(rename = "serdeContent")]
                 content,
+
+                /// This triple-slash documentation comment will appear in your IDE on the
+                /// generated type's `upvotes` field.
                 upvotes,
 
+                // Relational queries also use the familiar SQL-like syntax for
+                // `where`, `order by`, `limit` and `offset`.
                 order by upvotes desc
                 limit 5
-            }
+            },
+
+            // We can also query arbitrary SQL-like expressions, but we need to specify a name and
+            // Rust type at the end as they cannot be inferred by Kosame.
+            content is not null as has_content: bool,
 
             where id = :post_id
         }
     }
     .query_opt(&mut client)
     .await?;
+
+    println!("{:#?}", rows);
+    // Some(
+    //     Row {
+    //         id: 1,
+    //         renamed_title: "another post",
+    //         content: Some(
+    //             "very interesting content",
+    //         ),
+    //         comments: Many(
+    //             [
+    //                 RowComments {
+    //                     id: 2,
+    //                     content: "didn't read lol",
+    //                     upvotes: 1,
+    //                 },
+    //                 RowComments {
+    //                     id: 1,
+    //                     content: "nice",
+    //                     upvotes: 0,
+    //                 },
+    //             ],
+    //         ),
+    //         has_content: true,
+    //     },
+    // )
+
+    // Relational queries are not well suited to every use case. To squeeze maximum performance and
+    // flexibility out of your database, you may want to write SQL `SELECT` statements directly.
+    // Kosame supports an SQL-like syntax with type inference for this scenario.
+
+    let rows = kosame::pg_statement! {
+        with posts_with_content as (
+            select
+                posts.id
+            from
+                schema::posts
+            where
+                content is not null
+        )
+        select
+            posts_with_content.id,
+            sum(comments.upvotes),
+        from
+            posts_with_content
+            left join schema::comments on posts_with_content.id = comments.post_id
+        group by
+            posts_with_content.id
+    }
+    .query_opt(&mut client)
+    .await?;
+
     println!("{:#?}", rows);
 
     Ok(())

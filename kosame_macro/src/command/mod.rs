@@ -104,10 +104,10 @@ impl CommandType {
 
     pub fn fields(&self) -> Option<&Fields> {
         match self {
-            Self::Delete(..) => None,
-            Self::Insert(..) => None,
+            Self::Delete(inner) => inner.returning.as_ref().map(|returning| &returning.fields),
+            Self::Insert(inner) => inner.returning.as_ref().map(|returning| &returning.fields),
             Self::Select(inner) => Some(&inner.select.fields),
-            Self::Update(..) => None,
+            Self::Update(inner) => inner.returning.as_ref().map(|returning| &returning.fields),
         }
     }
 
