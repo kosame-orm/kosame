@@ -289,7 +289,7 @@ Kosame is an early prototype. There are many features and performance optimizati
 * Support for other database management systems. Currently, only PostgreSQL (using [`tokio_postgres`](https://docs.rs/tokio-postgres/latest/tokio_postgres/)) is supported.
 * CLI for generating database migrations based on changes in the Kosame schema.
 * CLI for generating a Kosame schema by introspecting a database.
-* Formatter for table, query and statement macros
+* Formatter for table, query and statement macros.
 * Support for more SQL expression syntax.
 * Alternative query runners, similar to the [`relationLoadStrategy` that Prisma offers](https://www.prisma.io/blog/prisma-orm-now-lets-you-choose-the-best-join-strategy-preview).
 * Type inference for bind parameters.
@@ -667,6 +667,146 @@ async fn fetch_row(
 
     Ok(rows)
 }
+```
+
+## Statements
+
+Kosame also supports an SQL-like syntax for `SELECT`, `INSERT`, `UPDATE`, and `DELETE` queries which make database mutations possible and allow for greater oversight and flexibility over what exactly your database does.
+
+### `SELECT`
+
+A simple `select` statement works without a `from` clause.
+```rust
+let rows = kosame::pg_statement! {
+    select
+        5 as my_column: i32
+}
+.query_one(&mut client)
+.await?;
+```
+
+You can also buid more complex queries with `where`, `group by`, `having`, `order by`, `limit`, and `offset`.
+```rust
+let rows = kosame::pg_statement! {
+    select
+        // Name and type of this column are inferred.
+        posts.id,
+        sum(comments.upvotes) as total_upvotes: i64,
+    from
+        schema::posts
+        inner join schema::comments on posts.id = comments.post_id
+    where
+        comments.upvotes > 0
+    group by
+        posts.id
+    having
+        count(1) > 0
+    order by
+        posts.id
+    limit
+        5
+}
+.query_vec(&mut client)
+.await?;
+```
+
+Common table expressions and (lateral) subqueries are also supported:
+```rust
+let rows = kosame::pg_statement! {
+    // A common table expression of all posts with non-null content.
+    with posts_with_content as (
+        select
+            posts.id
+        from
+            schema::posts
+        where
+            content is not null
+    )
+    select
+        // The type of this field is inferred as `i32`.
+        posts_with_content.id,
+        // This field would also be `i32`. However, because of the `left join`, Kosame knows it
+        // may be null and thus infers the field type to be `Option<i32>`.
+        top_comment.id as top_comment_id,
+        // Kosame cannot currently infer the name and type of this expressions, so we must
+        // declare them manually.
+        coalesce(sum(comments.upvotes), 0) as total_upvotes: i64,
+        // The $"..." syntax allows you inline raw SQL text into expressions, which can be
+        // helpful for syntax that Kosame does not yet support.
+        $"'[1, 2, 3]'::jsonb @> '[1, 3]'::jsonb" as raw_sql: bool,
+    from
+        posts_with_content
+        left join schema::comments on posts_with_content.id = comments.post_id
+        // Kosame supports subqueries, including `lateral` ones.
+        left join lateral (
+            select
+                comments.id
+            from
+                schema::comments
+            where
+                // We can access `posts_with_content` from the higher up scope here.
+                post_id = posts_with_content.id
+            order by
+                    upvotes desc
+            limit 1
+        ) as top_comment on true
+    group by
+        posts_with_content.id, top_comment.id
+}
+.query_vec(&mut client)
+.await?;
+```
+
+### `INSERT`
+
+```rust
+kosame::pg_statement! {
+    insert into schema::posts
+    values
+        (0, "my post", "hi, this is a post"),
+        (1, "another post", "very interesting content"),
+        (2, "post without content", null),
+    returning
+        posts.id
+}
+.query_vec(&mut client)
+.await?;
+```
+
+### `UPDATE`
+
+```rust
+let new_upvotes = kosame::pg_statement! {
+    update
+        schema::comments
+    set
+        upvotes = upvotes + 1
+    where
+        // The `comment_id` variable above is used as a bind parameter in this expression.
+        id = 5
+    returning
+        // We can return the updated value. Kosame infers the result type of this statement
+        // to be `struct Row { new_upvotes: i32 }` without a database connection.
+        comments.upvotes as new_upvotes
+}
+// With the `RETURNING` clause we can now use `query` instead of `exec` and retrieve data.
+.query_one(&mut client)
+.await?;
+```
+
+### `DELETE`
+
+```rust
+kosame::pg_statement! {
+    delete from
+        schema::posts
+    using
+        schema::comments
+    where
+        posts.id = comments.post_id
+}
+.exec(&mut client)
+.await?;
 ```
 
 ## Can Kosame handle all use cases well?
