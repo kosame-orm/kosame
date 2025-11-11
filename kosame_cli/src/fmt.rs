@@ -10,73 +10,79 @@ pub struct Fmt {
 }
 
 impl Fmt {
-    pub fn run(&self) {
+    pub fn run(&self) -> anyhow::Result<()> {
         let input = match &self.file {
-            Some(file) => std::fs::read_to_string(file).unwrap(),
+            Some(file) => std::fs::read_to_string(file)?,
             None => {
                 let mut buf = String::new();
-                std::io::stdin().read_to_string(&mut buf).unwrap();
+                std::io::stdin().read_to_string(&mut buf)?;
                 buf
             }
         };
+        let mut output = String::new();
 
-        let macro_patterns: Vec<String> = [
+        const MACROS: [&str; 6] = [
             "table",
             "pg_table",
             "statement",
             "pg_statement",
             "query",
             "pg_query",
-        ]
-        .iter()
-        .map(|k| format!(r"({}!\s*[\[({{])", regex::escape(k))) // Wrap each in a capture group
-        .collect();
+        ];
 
-        let pattern = format!("{}|([(){{}}\\[\\]])", macro_patterns.join("|"));
-        let regex = regex::Regex::new(&pattern).unwrap();
-
-        let mut output = String::new();
-
-        struct Start {
-            index: usize,
-            indent: usize,
-        }
-
-        let mut indent = 0;
-        let mut macro_start: Option<Start> = None;
-        let mut last_end = 0;
-        for r#match in regex.find_iter(&input) {
-            match r#match.as_str() {
-                "(" | "[" | "{" => indent += 1,
-                ")" | "]" | "}" => {
-                    indent -= 1;
-                    if let Some(start) = macro_start.as_ref()
-                        && start.indent >= indent
-                    {
-                        output.push_str(&input[last_end..start.index]);
-                        let format_input = &input[start.index..r#match.start()];
-                        println!("{}:{format_input}", start.indent);
-                        output.push_str(format_input);
-                        last_end = r#match.start();
-                        macro_start = None;
+        let mut line = 1;
+        let mut column = 1;
+        let mut word = String::new();
+        let mut stack = Vec::new();
+        for (i, c) in input.char_indices() {
+            match c {
+                '!' => {
+                    if MACROS.contains(&word.as_ref()) {
+                        println!("{word}");
                     }
                 }
-                _ => {
-                    if macro_start.is_none() {
-                        macro_start = Some(Start {
-                            index: r#match.end(),
-                            indent,
-                        });
-                    }
-                    indent += 1;
+                '\n' => {
+                    line += 1;
+                    column = 1;
                 }
+                '(' | '{' | '[' => stack.push(c),
+                ')' | '}' | ']' => {
+                    let Some(opening) = stack.pop() else {
+                        anyhow::bail!(
+                            "line {line}, column {column}: closing parenthesis found without matching opening parenthesis"
+                        );
+                    };
+                    match (opening, c) {
+                        ('(', ')') => {}
+                        ('{', '}') => {}
+                        ('[', ']') => {}
+                        _ => {
+                            anyhow::bail!(
+                                "line {line}, column {column}: mismatched closing parenthesis"
+                            );
+                        }
+                    }
+                }
+                _ => {}
             }
+            match c.is_alphanumeric() || c == '_' {
+                true => word.push(c),
+                false => word.clear(),
+            }
+
+            output.push(c);
+            column += 1;
         }
-        output.push_str(&input[last_end..(input.len())]);
+
+        if !stack.is_empty() {
+            anyhow::bail!("unmatched opening parentheses at the end of the file");
+        }
 
         match &self.file {
             Some(file) => std::fs::write(file, output).unwrap(),
             None => print!("{}", output),
         };
+
+        Ok(())
     }
 }

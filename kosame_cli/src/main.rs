@@ -20,7 +20,11 @@ struct Introspect {}
 
 fn main() {
     let root = Root::parse_from(std::env::args().skip(1));
-    match root {
+    let result = match root {
         Root::Fmt(inner) => inner.run(),
+    };
+    if let Err(error) = result {
+        eprintln!("{}", error);
+        std::process::exit(1);
     }
 }
