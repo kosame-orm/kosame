@@ -1,6 +1,7 @@
 use std::io::Read;
 
 use clap::Args;
+use syn::spanned::Spanned;
 
 #[derive(Args)]
 #[command(version, about = "Format the content of Kosame macro invocations in Rust source files", long_about = None)]
@@ -21,62 +22,68 @@ impl Fmt {
         };
         let mut output = String::new();
 
-        const MACROS: [&str; 6] = [
-            "table",
-            "pg_table",
-            "statement",
-            "pg_statement",
-            "query",
-            "pg_query",
-        ];
-
-        let mut line = 1;
-        let mut column = 1;
-        let mut word = String::new();
-        let mut stack = Vec::new();
-        for (i, c) in input.char_indices() {
-            match c {
-                '!' => {
-                    if MACROS.contains(&word.as_ref()) {
-                        println!("{word}");
-                    }
-                }
-                '\n' => {
-                    line += 1;
-                    column = 1;
-                }
-                '(' | '{' | '[' => stack.push(c),
-                ')' | '}' | ']' => {
-                    let Some(opening) = stack.pop() else {
-                        anyhow::bail!(
-                            "line {line}, column {column}: closing parenthesis found without matching opening parenthesis"
-                        );
-                    };
-                    match (opening, c) {
-                        ('(', ')') => {}
-                        ('{', '}') => {}
-                        ('[', ']') => {}
-                        _ => {
-                            anyhow::bail!(
-                                "line {line}, column {column}: mismatched closing parenthesis"
-                            );
-                        }
-                    }
-                }
-                _ => {}
-            }
-            match c.is_alphanumeric() || c == '_' {
-                true => word.push(c),
-                false => word.clear(),
-            }
-
-            output.push(c);
-            column += 1;
+        struct Replace {
+            start: usize,
+            end: usize,
+            replacement: String,
         }
 
-        if !stack.is_empty() {
-            anyhow::bail!("unmatched opening parentheses at the end of the file");
+        #[derive(Default)]
+        struct Visitor {
+            indent: usize,
+            replacements: Vec<Replace>,
         }
+        use syn::visit::Visit;
+        impl<'ast> Visit<'ast> for Visitor {
+            fn visit_item_mod(&mut self, node: &'ast syn::ItemMod) {
+                self.indent += 1;
+                syn::visit::visit_item_mod(self, node);
+                self.indent -= 1;
+            }
+            fn visit_item_impl(&mut self, node: &'ast syn::ItemImpl) {
+                self.indent += 1;
+                syn::visit::visit_item_impl(self, node);
+                self.indent -= 1;
+            }
+            fn visit_item_trait(&mut self, node: &'ast syn::ItemTrait) {
+                self.indent += 1;
+                syn::visit::visit_item_trait(self, node);
+                self.indent -= 1;
+            }
+            fn visit_item_fn(&mut self, node: &'ast syn::ItemFn) {
+                self.indent += 1;
+                syn::visit::visit_item_fn(self, node);
+                self.indent -= 1;
+            }
+            fn visit_macro(&mut self, i: &'ast syn::Macro) {
+                let name = &i.path.segments.last().expect("paths cannot be empty").ident;
+                let span = i.delimiter.span().span();
+                match name.to_string().as_ref() {
+                    "table" | "pg_table" => {
+                        self.replacements.push(Replace {
+                            start: span.byte_range().start + 1,
+                            end: span.byte_range().end - 1,
+                            replacement: "kek".to_string(),
+                        });
+                    }
+                    _ => {}
+                }
+                println!("{:#?}", i.tokens.span().source_text());
+            }
+        }
+
+        let file = syn::parse_file(&input)?;
+        let mut visitor = Visitor::default();
+        visitor.visit_file(&file);
+
+        let mut current_index = 0;
+        for replacement in visitor.replacements {
+            output.push_str(&input[current_index..replacement.start]);
+            output.push_str(&replacement.replacement);
+            current_index = replacement.end;
+        }
+
+        output.push_str(&input[current_index..]);
 
         match &self.file {
             Some(file) => std::fs::write(file, output).unwrap(),

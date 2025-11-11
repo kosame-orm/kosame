@@ -20,5 +20,7 @@ default = []
 [dependencies]
 anyhow = "1.0.100"
 clap = { version = "4.5.50", features = ["derive"] }
+proc-macro2 = { version = "1.0.103", features = ["span-locations"] }
 regex = "1.12.2"
+syn = { version = "2.0.110", features = ["full", "visit"] }
 tokio-postgres = "0.7.14"
