@@ -412,6 +412,7 @@ version = "0.2.0"
 dependencies = [
  "anyhow",
  "clap",
+ "kosame_dsl",
  "proc-macro2",
  "regex",
  "syn 2.0.110",

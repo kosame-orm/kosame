@@ -92,9 +92,9 @@ impl CustomMeta {
             MetaLocation::TableInner | MetaLocation::QueryInner | MetaLocation::StatementInner
                 if result.driver.is_none() =>
             {
-                emit_call_site_error!(
-                    "missing `driver` attribute, e.g. #[kosame(driver = \"tokio-postgres\")]"
-                );
+                // emit_call_site_error!(
+                //     "missing `driver` attribute, e.g. #[kosame(driver = \"tokio-postgres\")]"
+                // );
             }
             _ => {}
         }

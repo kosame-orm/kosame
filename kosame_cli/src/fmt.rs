@@ -1,7 +1,8 @@
 use std::io::Read;
 
 use clap::Args;
-use syn::spanned::Spanned;
+use kosame_dsl::pretty_print::{BreakMode, PrettyPrint};
+use syn::{parse::Parse, spanned::Spanned};
 
 #[derive(Args)]
 #[command(version, about = "Format the content of Kosame macro invocations in Rust source files", long_about = None)]
@@ -32,6 +33,7 @@ impl Fmt {
         struct Visitor {
             indent: usize,
             replacements: Vec<Replace>,
+            errors: Vec<syn::Error>,
         }
         use syn::visit::Visit;
         impl<'ast> Visit<'ast> for Visitor {
@@ -60,15 +62,29 @@ impl Fmt {
                 let span = i.delimiter.span().span();
                 match name.to_string().as_ref() {
                     "table" | "pg_table" => {
+                        let table: kosame_dsl::schema::Table = match i.parse_body() {
+                            Ok(body) => body,
+                            Err(error) => {
+                                self.errors.push(error);
+                                return;
+                            }
+                        };
+
+                        let mut printer = kosame_dsl::pretty_print::Printer::new(0, self.indent);
+                        printer.print_begin(BreakMode::Consistent);
+                        printer.print_break(" ");
+                        table.pretty_print(&mut printer);
+                        printer.print_break(" ");
+                        printer.print_end();
+
                         self.replacements.push(Replace {
                             start: span.byte_range().start + 1,
                             end: span.byte_range().end - 1,
-                            replacement: "kek".to_string(),
+                            replacement: printer.eof(),
                         });
                     }
                     _ => {}
                 }
-                println!("{:#?}", i.tokens.span().source_text());
             }
         }
 

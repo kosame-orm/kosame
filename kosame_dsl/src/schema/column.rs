@@ -2,6 +2,7 @@ use crate::{
     attribute::{CustomMeta, MetaLocation},
     data_type::DataType,
     path_ext::PathExt,
+    pretty_print::{BreakMode, PrettyPrint, Printer},
     quote_option::QuoteOption,
 };
 
@@ -96,5 +97,16 @@ impl ToTokens for Column {
             }
         }
         .to_tokens(tokens);
+    }
+}
+
+impl PrettyPrint for Column {
+    fn pretty_print(&self, printer: &mut Printer) {
+        printer.print_begin(BreakMode::Inconsistent);
+        printer.print_text(self.name.to_string());
+        printer.print_break(" ");
+        printer.print_text(self.data_type.name.to_string());
+        printer.print_break(",");
+        printer.print_end();
     }
 }

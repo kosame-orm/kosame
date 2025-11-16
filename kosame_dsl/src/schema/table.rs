@@ -6,6 +6,7 @@ use std::{
 use crate::{
     attribute::{CustomMeta, MetaLocation},
     keyword,
+    pretty_print::{BreakMode, PrettyPrint, Printer},
     row::{Row, RowField},
     unique_macro::unique_macro,
 };
@@ -185,5 +186,19 @@ impl ToTokens for Table {
             }
         }
         .to_tokens(tokens);
+    }
+}
+
+impl PrettyPrint for Table {
+    fn pretty_print(&self, printer: &mut Printer) {
+        printer.print_text("create table (");
+        printer.print_begin(BreakMode::Consistent);
+        printer.print_break("");
+        for column in self.columns.iter() {
+            column.pretty_print(printer);
+            printer.print_break(" ");
+        }
+        printer.print_end();
+        printer.print_text(")");
     }
 }
