@@ -28,9 +28,9 @@ impl Token {
     }
 }
 
-struct SizedToken {
-    inner: Token,
-    size: i32,
+struct PrintFrame {
+    group_break: bool,
+    content_break: bool,
 }
 
 #[derive(Default)]
@@ -41,7 +41,7 @@ pub struct Printer {
     tokens: VecDeque<Token>,
     last_break: Option<usize>,
     begin_stack: Vec<usize>,
-    force_break_stack: Vec<bool>,
+    print_frames: Vec<PrintFrame>,
 }
 
 impl Printer {
@@ -53,7 +53,7 @@ impl Printer {
             tokens: VecDeque::new(),
             last_break: None,
             begin_stack: Vec::new(),
-            force_break_stack: Vec::new(),
+            print_frames: Vec::new(),
         }
     }
 
@@ -65,7 +65,7 @@ impl Printer {
         &mut self.tokens[index]
     }
 
-    pub fn print_text(&mut self, text: impl Into<Cow<'static, str>>) {
+    pub fn scan_text(&mut self, text: impl Into<Cow<'static, str>>) {
         let text = text.into();
         let text_len = text.len();
         self.tokens.push_back(Token::Text(text));
@@ -87,19 +87,19 @@ impl Printer {
         }
     }
 
-    pub fn print_break(&mut self, text: impl Into<Cow<'static, str>>) {
+    pub fn scan_break(&mut self, text: impl Into<Cow<'static, str>>) {
         let text = text.into();
         let len = text.len();
         self.last_break = Some(self.tokens.len());
         self.tokens.push_back(Token::Break { text, len });
     }
 
-    pub fn print_begin(&mut self, mode: BreakMode) {
+    pub fn scan_begin(&mut self, mode: BreakMode) {
         self.begin_stack.push(self.tokens.len());
         self.tokens.push_back(Token::Begin { mode, len: 0 });
     }
 
-    pub fn print_end(&mut self) {
+    pub fn scan_end(&mut self) {
         let begin_index = self
             .begin_stack
             .pop()
@@ -118,30 +118,50 @@ impl Printer {
         self.tokens.push_back(Token::End);
     }
 
-    fn emit_first(&mut self) {
+    fn print_break(&mut self) {
+        self.output.push('\n');
+        self.output.push_str(&" ".repeat(self.indent * INDENT));
+        self.space = (MARGIN - self.indent * INDENT).max(MIN_SPACE) as isize;
+    }
+
+    fn print_first(&mut self) {
         let token = self.tokens.pop_front().expect("no tokens to emit");
         match &token {
             Token::Text(text) => {
                 self.output.push_str(text);
             }
             Token::Break { text, len } => {
-                let force_break = self.force_break_stack.last().copied().unwrap_or(false);
-                if force_break || *len as isize >= self.space {
-                    self.output.push('\n');
-                    self.output.push_str(&" ".repeat(self.indent * INDENT));
-                    self.space = (MARGIN - self.indent * INDENT).max(MIN_SPACE) as isize;
+                let content_break = self
+                    .print_frames
+                    .last()
+                    .map(|frame| frame.content_break)
+                    .unwrap_or(false);
+                if content_break || *len as isize >= self.space {
+                    self.print_break();
                 } else {
                     self.output.push_str(text);
                 }
             }
             Token::Begin { mode, len, .. } => {
-                self.force_break_stack
-                    .push(*len as isize >= self.space && *mode == BreakMode::Consistent);
+                let group_break = *len as isize >= self.space;
+                self.print_frames.push(PrintFrame {
+                    group_break,
+                    content_break: *mode == BreakMode::Consistent,
+                });
                 self.indent += 1;
+                if group_break {
+                    self.print_break();
+                }
             }
             Token::End => {
-                self.force_break_stack.pop();
+                let print_frame = self
+                    .print_frames
+                    .pop()
+                    .expect("emitted end token without begin");
                 self.indent -= 1;
+                if print_frame.group_break {
+                    self.print_break();
+                }
             }
         };
         self.space -= token.len() as isize;
@@ -149,7 +169,7 @@ impl Printer {
 
     pub fn eof(mut self) -> String {
         while !self.tokens.is_empty() {
-            self.emit_first();
+            self.print_first();
         }
 
         self.output

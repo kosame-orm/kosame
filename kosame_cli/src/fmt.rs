@@ -71,11 +71,11 @@ impl Fmt {
                         };
 
                         let mut printer = kosame_dsl::pretty_print::Printer::new(0, self.indent);
-                        printer.print_begin(BreakMode::Consistent);
-                        printer.print_break(" ");
+                        printer.scan_begin(BreakMode::Consistent);
+                        printer.scan_text(" ");
                         table.pretty_print(&mut printer);
-                        printer.print_break(" ");
-                        printer.print_end();
+                        printer.scan_text(" ");
+                        printer.scan_end();
 
                         self.replacements.push(Replace {
                             start: span.byte_range().start + 1,

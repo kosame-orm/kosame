@@ -102,10 +102,10 @@ impl ToTokens for Column {
 
 impl PrettyPrint for Column {
     fn pretty_print(&self, printer: &mut Printer) {
-        printer.print_begin(BreakMode::Inconsistent);
-        printer.print_text(self.name.to_string());
-        printer.print_break(" ");
-        printer.print_text(self.data_type.name.to_string());
-        printer.print_end();
+        printer.scan_begin(BreakMode::Inconsistent);
+        printer.scan_text(self.name.to_string());
+        printer.scan_break(" ");
+        printer.scan_text(self.data_type.name.to_string());
+        printer.scan_end();
     }
 }

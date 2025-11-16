@@ -191,15 +191,16 @@ impl ToTokens for Table {
 
 impl PrettyPrint for Table {
     fn pretty_print(&self, printer: &mut Printer) {
-        printer.print_text("create table (");
-        printer.print_begin(BreakMode::Consistent);
-        printer.print_break("");
-        for column in self.columns.iter() {
+        printer.scan_text("create table (");
+        printer.scan_begin(BreakMode::Consistent);
+        for (index, column) in self.columns.iter().enumerate() {
             column.pretty_print(printer);
-            printer.print_text(",");
-            printer.print_break(" ");
+            printer.scan_text(",");
+            if index != self.columns.len() - 1 {
+                printer.scan_break(" ");
+            }
         }
-        printer.print_end();
-        printer.print_text(");");
+        printer.scan_end();
+        printer.scan_text(");");
     }
 }
