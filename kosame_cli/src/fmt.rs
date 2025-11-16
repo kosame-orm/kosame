@@ -1,8 +1,11 @@
 use std::io::Read;
 
 use clap::Args;
-use kosame_dsl::pretty_print::{BreakMode, PrettyPrint};
-use syn::{parse::Parse, spanned::Spanned};
+use kosame_dsl::{
+    pretty::Printer,
+    pretty::{BreakMode, PrettyPrint},
+};
+use syn::spanned::Spanned;
 
 #[derive(Args)]
 #[command(version, about = "Format the content of Kosame macro invocations in Rust source files", long_about = None)]
@@ -60,9 +63,12 @@ impl Fmt {
             fn visit_macro(&mut self, i: &'ast syn::Macro) {
                 let name = &i.path.segments.last().expect("paths cannot be empty").ident;
                 let span = i.delimiter.span().span();
+                let source_text = span.source_text().unwrap();
+                let source_text = &source_text[1..source_text.len() - 1];
+
                 match name.to_string().as_ref() {
                     "table" | "pg_table" => {
-                        let table: kosame_dsl::schema::Table = match i.parse_body() {
+                        let table: kosame_dsl::schema::Table = match syn::parse_str(source_text) {
                             Ok(body) => body,
                             Err(error) => {
                                 self.errors.push(error);
@@ -70,7 +76,7 @@ impl Fmt {
                             }
                         };
 
-                        let mut printer = kosame_dsl::pretty_print::Printer::new(0, self.indent);
+                        let mut printer = Printer::new(0, self.indent);
                         printer.scan_begin(BreakMode::Consistent);
                         printer.scan_text(" ");
                         table.pretty_print(&mut printer);

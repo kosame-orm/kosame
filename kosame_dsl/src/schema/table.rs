@@ -6,7 +6,7 @@ use std::{
 use crate::{
     attribute::{CustomMeta, MetaLocation},
     keyword,
-    pretty_print::{BreakMode, PrettyPrint, Printer},
+    pretty::{BreakMode, PrettyPrint, Printer},
     row::{Row, RowField},
     unique_macro::unique_macro,
 };

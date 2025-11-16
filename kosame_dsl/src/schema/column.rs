@@ -2,7 +2,7 @@ use crate::{
     attribute::{CustomMeta, MetaLocation},
     data_type::DataType,
     path_ext::PathExt,
-    pretty_print::{BreakMode, PrettyPrint, Printer},
+    pretty::{BreakMode, PrettyPrint, Printer},
     quote_option::QuoteOption,
 };
 

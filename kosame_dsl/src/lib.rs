@@ -10,7 +10,7 @@ pub mod inferred_type;
 pub mod keyword;
 pub mod part;
 pub mod path_ext;
-pub mod pretty_print;
+pub mod pretty;
 pub mod query;
 pub mod quote_option;
 pub mod row;

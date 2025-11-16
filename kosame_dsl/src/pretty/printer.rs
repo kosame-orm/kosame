@@ -14,7 +14,7 @@ enum Token {
     Text(Cow<'static, str>),
     Break { text: Cow<'static, str>, len: usize },
     Begin { mode: BreakMode, len: usize },
-    End,
+    End {},
 }
 
 impl Token {
@@ -174,8 +174,4 @@ impl Printer {
 
         self.output
     }
-}
-
-pub trait PrettyPrint {
-    fn pretty_print(&self, printer: &mut Printer);
 }
