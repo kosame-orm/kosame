@@ -1,4 +1,9 @@
-use crate::{inferred_type::InferredType, keyword, scopes::ScopeId};
+use crate::{
+    inferred_type::InferredType,
+    keyword,
+    pretty::{PrettyPrint, Printer},
+    scopes::ScopeId,
+};
 
 use super::{Expr, Visitor};
 use proc_macro2::{Span, TokenStream};
@@ -53,6 +58,16 @@ impl ToTokens for Binary {
             ::kosame::repr::expr::Binary::new(&#lhs, #op, &#rhs)
         }
         .to_tokens(tokens);
+    }
+}
+
+impl PrettyPrint for Binary {
+    fn pretty_print(&self, printer: &mut Printer) {
+        self.lhs.pretty_print(printer);
+        printer.scan_break(" ");
+        self.op.pretty_print(printer);
+        printer.scan_text(" ");
+        self.rhs.pretty_print(printer);
     }
 }
 
@@ -201,5 +216,47 @@ impl ToTokens for BinOp {
             And
             Or
         );
+    }
+}
+
+impl PrettyPrint for BinOp {
+    fn pretty_print(&self, printer: &mut Printer) {
+        match self {
+            Self::Multiply(inner) => inner.pretty_print(printer),
+            Self::Divide(inner) => inner.pretty_print(printer),
+            Self::Modulo(inner) => inner.pretty_print(printer),
+            Self::Add(inner) => inner.pretty_print(printer),
+            Self::Subtract(inner) => inner.pretty_print(printer),
+            Self::Eq(inner) => inner.pretty_print(printer),
+            Self::Uneq(lt, gt) => {
+                lt.pretty_print(printer);
+                gt.pretty_print(printer);
+            }
+            Self::LessThan(inner) => inner.pretty_print(printer),
+            Self::GreaterThan(inner) => inner.pretty_print(printer),
+            Self::LessThanOrEq(lt, eq) => {
+                lt.pretty_print(printer);
+                eq.pretty_print(printer);
+            }
+            Self::GreaterThanOrEq(gt, eq) => {
+                gt.pretty_print(printer);
+                eq.pretty_print(printer);
+            }
+            Self::Is(inner) => inner.pretty_print(printer),
+            Self::IsNot(is, not) => {
+                is.pretty_print(printer);
+                printer.scan_text(" ");
+                not.pretty_print(printer);
+            }
+            Self::IsDistinctFrom(is, distinct, from) => {
+                is.pretty_print(printer);
+                printer.scan_text(" ");
+                distinct.pretty_print(printer);
+                printer.scan_text(" ");
+                from.pretty_print(printer);
+            }
+            Self::And(inner) => inner.pretty_print(printer),
+            Self::Or(inner) => inner.pretty_print(printer),
+        }
     }
 }

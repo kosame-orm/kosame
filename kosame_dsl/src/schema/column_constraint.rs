@@ -5,7 +5,11 @@ use syn::{
     parse::{Parse, ParseStream},
 };
 
-use crate::{expr::Expr, keyword};
+use crate::{
+    expr::Expr,
+    keyword,
+    pretty::{PrettyPrint, Printer},
+};
 
 pub struct ColumnConstraints(pub Vec<ColumnConstraint>);
 
@@ -42,6 +46,15 @@ impl Parse for ColumnConstraints {
     }
 }
 
+impl PrettyPrint for ColumnConstraints {
+    fn pretty_print(&self, printer: &mut Printer) {
+        for constraint in &self.0 {
+            printer.scan_break(" ");
+            constraint.pretty_print(printer);
+        }
+    }
+}
+
 impl Deref for ColumnConstraints {
     type Target = Vec<ColumnConstraint>;
 
@@ -72,6 +85,28 @@ impl Parse for ColumnConstraint {
     }
 }
 
+impl PrettyPrint for ColumnConstraint {
+    fn pretty_print(&self, printer: &mut Printer) {
+        match self {
+            Self::NotNull(inner) => {
+                inner.not_kw.pretty_print(printer);
+                printer.scan_text(" ");
+                inner.null_kw.pretty_print(printer);
+            }
+            Self::PrimaryKey(inner) => {
+                inner.primary_kw.pretty_print(printer);
+                printer.scan_text(" ");
+                inner.key_kw.pretty_print(printer);
+            }
+            Self::Default(inner) => {
+                inner.default_kw.pretty_print(printer);
+                printer.scan_text(" ");
+                inner.expr.pretty_print(printer);
+            }
+        }
+    }
+}
+
 impl Display for ColumnConstraint {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
@@ -84,35 +119,35 @@ impl Display for ColumnConstraint {
 }
 
 pub struct NotNull {
-    pub _not: keyword::not,
-    pub _null: keyword::null,
+    pub not_kw: keyword::not,
+    pub null_kw: keyword::null,
 }
 
 impl Parse for NotNull {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         Ok(Self {
-            _not: input.call(keyword::not::parse_autocomplete)?,
-            _null: input.call(keyword::null::parse_autocomplete)?,
+            not_kw: input.call(keyword::not::parse_autocomplete)?,
+            null_kw: input.call(keyword::null::parse_autocomplete)?,
         })
     }
 }
 
 pub struct PrimaryKey {
-    pub _primary: keyword::primary,
-    pub _key: keyword::key,
+    pub primary_kw: keyword::primary,
+    pub key_kw: keyword::key,
 }
 
 impl Parse for PrimaryKey {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         Ok(Self {
-            _primary: input.call(keyword::primary::parse_autocomplete)?,
-            _key: input.call(keyword::key::parse_autocomplete)?,
+            primary_kw: input.call(keyword::primary::parse_autocomplete)?,
+            key_kw: input.call(keyword::key::parse_autocomplete)?,
         })
     }
 }
 
 pub struct Default {
-    pub _default: keyword::default,
+    pub default_kw: keyword::default,
     pub expr: Expr,
 }
 
@@ -125,7 +160,7 @@ impl Default {
 impl Parse for Default {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         Ok(Self {
-            _default: input.call(keyword::default::parse_autocomplete)?,
+            default_kw: input.call(keyword::default::parse_autocomplete)?,
             expr: input.parse()?,
         })
     }

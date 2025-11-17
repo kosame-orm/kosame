@@ -1,3 +1,6 @@
+use quote::ToTokens;
+use std::borrow::Cow;
+
 macro_rules! custom_keyword {
     ($kw:ident) => {
         ::syn::custom_keyword!($kw);
@@ -18,6 +21,12 @@ macro_rules! custom_keyword {
                         ::proc_macro_error::abort!(span, error.to_string());
                     }
                 }
+            }
+        }
+
+        impl crate::pretty::Text for &$kw {
+            fn into_cow_str(self) -> Cow<'static, str> {
+                self.to_token_stream().to_string().into()
             }
         }
     };

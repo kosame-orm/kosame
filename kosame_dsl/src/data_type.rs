@@ -5,6 +5,8 @@ use syn::{
     parse::{Parse, ParseStream},
 };
 
+use crate::pretty::{PrettyPrint, Printer};
+
 #[derive(Clone)]
 pub struct DataType {
     pub name: Ident,
@@ -48,5 +50,11 @@ impl ToTokens for DataType {
             }
         }
         .to_tokens(tokens);
+    }
+}
+
+impl PrettyPrint for DataType {
+    fn pretty_print(&self, printer: &mut Printer) {
+        printer.scan_text(&self.name);
     }
 }

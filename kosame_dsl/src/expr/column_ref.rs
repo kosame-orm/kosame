@@ -1,4 +1,8 @@
-use crate::{inferred_type::InferredType, scopes::ScopeId};
+use crate::{
+    inferred_type::InferredType,
+    pretty::{PrettyPrint, Printer},
+    scopes::ScopeId,
+};
 
 use super::Visitor;
 use proc_macro2::{Span, TokenStream};
@@ -50,7 +54,7 @@ impl Parse for ColumnRef {
         if input.peek(Token![.]) {
             let correlation = Correlation {
                 name: ident1,
-                _period_token: input.parse()?,
+                period_token: input.parse()?,
             };
             Ok(Self {
                 correlation: Some(correlation),
@@ -62,6 +66,13 @@ impl Parse for ColumnRef {
                 name: ident1,
             })
         }
+    }
+}
+
+impl PrettyPrint for ColumnRef {
+    fn pretty_print(&self, printer: &mut Printer) {
+        self.correlation.pretty_print(printer);
+        self.name.pretty_print(printer);
     }
 }
 
@@ -93,5 +104,12 @@ impl ToTokens for ColumnRef {
 
 pub struct Correlation {
     pub name: Ident,
-    pub _period_token: Token![.],
+    pub period_token: Token![.],
+}
+
+impl PrettyPrint for Correlation {
+    fn pretty_print(&self, printer: &mut Printer) {
+        self.name.pretty_print(printer);
+        self.period_token.pretty_print(printer);
+    }
 }

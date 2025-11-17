@@ -1,4 +1,8 @@
-use crate::{inferred_type::InferredType, scopes::ScopeId};
+use crate::{
+    inferred_type::InferredType,
+    pretty::{BreakMode, PrettyPrint, Printer, TextMode},
+    scopes::ScopeId,
+};
 
 use super::{Expr, Visitor};
 use proc_macro2::{Span, TokenStream};
@@ -74,5 +78,16 @@ impl ToTokens for Call {
             )
         }
         .to_tokens(tokens)
+    }
+}
+
+impl PrettyPrint for Call {
+    fn pretty_print(&self, printer: &mut Printer) {
+        self.function.pretty_print(printer);
+        printer.scan_text("(");
+        printer.scan_begin(BreakMode::Consistent);
+        self.params.pretty_print(printer);
+        printer.scan_end();
+        printer.scan_text(")");
     }
 }

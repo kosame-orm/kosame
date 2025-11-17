@@ -1,4 +1,9 @@
-use crate::{inferred_type::InferredType, keyword, scopes::ScopeId};
+use crate::{
+    inferred_type::InferredType,
+    keyword,
+    pretty::{PrettyPrint, Printer},
+    scopes::ScopeId,
+};
 
 use super::Visitor;
 use proc_macro2::{Span, TokenStream};
@@ -71,5 +76,17 @@ impl ToTokens for Lit {
             Self::Null(_) => quote! { ::kosame::repr::expr::Lit::Null },
         };
         token_stream.to_tokens(tokens);
+    }
+}
+
+impl PrettyPrint for Lit {
+    fn pretty_print(&self, printer: &mut Printer) {
+        match self {
+            Self::Int(inner) => inner.token().pretty_print(printer),
+            Self::Float(inner) => inner.token().pretty_print(printer),
+            Self::Str(inner) => inner.token().pretty_print(printer),
+            Self::Bool(inner) => inner.token().pretty_print(printer),
+            Self::Null(inner) => inner.pretty_print(printer),
+        }
     }
 }

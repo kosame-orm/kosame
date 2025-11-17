@@ -1,0 +1,91 @@
+use std::borrow::Cow;
+
+use proc_macro2::Literal;
+use quote::ToTokens;
+use syn::{Ident, Token, punctuated::Punctuated};
+
+use super::{PrettyPrint, Printer, TextMode};
+
+pub trait Text {
+    fn into_cow_str(self) -> Cow<'static, str>;
+}
+
+impl<T> PrettyPrint for Option<T>
+where
+    T: PrettyPrint,
+{
+    fn pretty_print(&self, printer: &mut Printer) {
+        if let Some(inner) = self {
+            inner.pretty_print(printer);
+        }
+    }
+}
+
+impl<T> PrettyPrint for T
+where
+    for<'a> &'a T: Text,
+{
+    fn pretty_print(&self, printer: &mut Printer) {
+        printer.scan_text(self);
+    }
+}
+
+impl<T> PrettyPrint for Punctuated<T, Token![,]>
+where
+    T: PrettyPrint,
+{
+    fn pretty_print(&self, printer: &mut Printer) {
+        for (index, item) in self.pairs().enumerate() {
+            item.value().pretty_print(printer);
+            if index != self.len() - 1 {
+                item.punct().unwrap().pretty_print(printer);
+                printer.scan_break(" ");
+            } else {
+                printer.scan_text_with_mode(",", TextMode::Break);
+            }
+        }
+    }
+}
+
+impl Text for &'static str {
+    fn into_cow_str(self) -> Cow<'static, str> {
+        self.into()
+    }
+}
+
+impl Text for &Ident {
+    fn into_cow_str(self) -> Cow<'static, str> {
+        self.to_string().into()
+    }
+}
+
+impl Text for &Literal {
+    fn into_cow_str(self) -> Cow<'static, str> {
+        self.to_string().into()
+    }
+}
+
+macro_rules! impl_token {
+    ($token:tt) => {
+        impl Text for &syn::Token![$token] {
+            fn into_cow_str(self) -> Cow<'static, str> {
+                self.to_token_stream().to_string().into()
+            }
+        }
+    };
+}
+
+impl_token!(=);
+impl_token!(.);
+impl_token!(,);
+impl_token!(:);
+impl_token!(;);
+impl_token!(*);
+impl_token!(/);
+impl_token!(%);
+impl_token!(+);
+impl_token!(-);
+impl_token!(>);
+impl_token!(<);
+impl_token!($);
+impl_token!(as);

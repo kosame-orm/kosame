@@ -7,15 +7,21 @@ use syn::{
     token::Paren,
 };
 
-use crate::{data_type::DataType, inferred_type::InferredType, keyword, scopes::ScopeId};
+use crate::{
+    data_type::DataType,
+    inferred_type::InferredType,
+    keyword,
+    pretty::{BreakMode, PrettyPrint, Printer},
+    scopes::ScopeId,
+};
 
 use super::{Expr, Visitor};
 
 pub struct Cast {
-    pub cast: keyword::cast,
+    pub cast_kw: keyword::cast,
     pub paren: Paren,
     pub value: Box<Expr>,
-    pub _as: Token![as],
+    pub as_token: Token![as],
     pub data_type: DataType,
 }
 
@@ -40,10 +46,10 @@ impl Cast {
     }
 
     pub fn span(&self) -> Span {
-        self.cast
+        self.cast_kw
             .span
             .join(self.paren.span.span())
-            .unwrap_or(self.cast.span)
+            .unwrap_or(self.cast_kw.span)
     }
 }
 
@@ -51,10 +57,10 @@ impl Parse for Cast {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         let content;
         Ok(Self {
-            cast: input.parse()?,
+            cast_kw: input.parse()?,
             paren: parenthesized!(content in input),
             value: content.parse()?,
-            _as: content.parse()?,
+            as_token: content.parse()?,
             data_type: content.parse()?,
         })
     }
@@ -68,5 +74,20 @@ impl ToTokens for Cast {
             ::kosame::repr::expr::Cast::new(&#value, #data_type)
         }
         .to_tokens(tokens);
+    }
+}
+
+impl PrettyPrint for Cast {
+    fn pretty_print(&self, printer: &mut Printer) {
+        self.cast_kw.pretty_print(printer);
+        printer.scan_text(" (");
+        printer.scan_begin(BreakMode::Inconsistent);
+        self.value.pretty_print(printer);
+        printer.scan_break(" ");
+        self.as_token.pretty_print(printer);
+        printer.scan_text(" ");
+        self.data_type.pretty_print(printer);
+        printer.scan_end();
+        printer.scan_text(")");
     }
 }

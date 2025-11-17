@@ -26,7 +26,12 @@ use syn::{
     spanned::Spanned,
 };
 
-use crate::{inferred_type::InferredType, scopes::ScopeId, visitor::Visitor};
+use crate::{
+    inferred_type::InferredType,
+    pretty::{PrettyPrint, Printer},
+    scopes::ScopeId,
+    visitor::Visitor,
+};
 
 pub enum Expr {
     Binary(Binary),
@@ -169,6 +174,20 @@ impl ToTokens for Expr {
             ($($variant:ident)*) => {
                 match self {
                     $(Self::$variant(inner) => quote! { ::kosame::repr::expr::Expr::$variant(#inner) }.to_tokens(tokens)),*
+                }
+            };
+        }
+
+        variants!(branches!());
+    }
+}
+
+impl PrettyPrint for Expr {
+    fn pretty_print(&self, printer: &mut Printer) {
+        macro_rules! branches {
+            ($($variant:ident)*) => {
+                match self {
+                    $(Self::$variant(inner) => inner.pretty_print(printer)),*
                 }
             };
         }

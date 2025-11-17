@@ -27,15 +27,15 @@ pub struct Table {
     pub _inner_attrs: Vec<Attribute>,
     pub _outer_attrs: Vec<Attribute>,
 
-    pub _create: keyword::create,
-    pub _table: keyword::table,
+    pub create_kw: keyword::create,
+    pub table_kw: keyword::table,
     pub name: Ident,
 
     pub _paren: syn::token::Paren,
 
     pub columns: Punctuated<Column, Token![,]>,
 
-    pub _semi: Token![;],
+    pub semi_token: Token![;],
 
     pub relations: Punctuated<Relation, Token![,]>,
 }
@@ -55,12 +55,12 @@ impl Parse for Table {
                 CustomMeta::parse_attrs(&attrs, MetaLocation::TableOuter)?;
                 attrs
             },
-            _create: input.call(keyword::create::parse_autocomplete)?,
-            _table: input.call(keyword::table::parse_autocomplete)?,
+            create_kw: input.call(keyword::create::parse_autocomplete)?,
+            table_kw: input.call(keyword::table::parse_autocomplete)?,
             name: input.parse()?,
             _paren: syn::parenthesized!(content in input),
             columns: content.parse_terminated(Column::parse, Token![,])?,
-            _semi: input.parse()?,
+            semi_token: input.parse()?,
             relations: input.parse_terminated(Relation::parse, Token![,])?,
         })
     }
@@ -191,18 +191,14 @@ impl ToTokens for Table {
 
 impl PrettyPrint for Table {
     fn pretty_print(&self, printer: &mut Printer) {
-        printer.scan_text("create table (");
+        self.create_kw.pretty_print(printer);
+        printer.scan_text(" ");
+        self.table_kw.pretty_print(printer);
+        printer.scan_text(" (");
         printer.scan_begin(BreakMode::Consistent);
-        for (index, column) in self.columns.iter().enumerate() {
-            column.pretty_print(printer);
-            if index != self.columns.len() - 1 {
-                printer.scan_text(",");
-                printer.scan_break(" ");
-            } else {
-                printer.scan_text_with_mode(",", TextMode::Break);
-            }
-        }
+        self.columns.pretty_print(printer);
         printer.scan_end();
-        printer.scan_text(");");
+        printer.scan_text(")");
+        self.semi_token.pretty_print(printer);
     }
 }

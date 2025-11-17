@@ -1,5 +1,7 @@
 use std::{borrow::Cow, collections::VecDeque};
 
+use super::Text;
+
 const MARGIN: usize = 89;
 const INDENT: usize = 4;
 const MIN_SPACE: usize = 60;
@@ -82,12 +84,12 @@ impl Printer {
         &mut self.tokens[index]
     }
 
-    pub fn scan_text(&mut self, text: impl Into<Cow<'static, str>>) {
+    pub fn scan_text(&mut self, text: impl Text) {
         self.scan_text_with_mode(text, TextMode::Always);
     }
 
-    pub fn scan_text_with_mode(&mut self, text: impl Into<Cow<'static, str>>, mode: TextMode) {
-        let text = text.into();
+    pub fn scan_text_with_mode(&mut self, text: impl Text, mode: TextMode) {
+        let text = text.into_cow_str();
         let text_len = text.len();
         self.tokens.push_back(Token::Text { text, mode });
 

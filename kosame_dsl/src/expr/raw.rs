@@ -1,4 +1,8 @@
-use crate::{inferred_type::InferredType, scopes::ScopeId};
+use crate::{
+    inferred_type::InferredType,
+    pretty::{PrettyPrint, Printer},
+    scopes::ScopeId,
+};
 
 use super::Visitor;
 use proc_macro2::{Span, TokenStream};
@@ -49,5 +53,12 @@ impl ToTokens for Raw {
     fn to_tokens(&self, tokens: &mut TokenStream) {
         let string = &self.string;
         quote! { ::kosame::repr::expr::Raw::new(#string) }.to_tokens(tokens)
+    }
+}
+
+impl PrettyPrint for Raw {
+    fn pretty_print(&self, printer: &mut Printer) {
+        self.dollar_token.pretty_print(printer);
+        self.string.token().pretty_print(printer);
     }
 }

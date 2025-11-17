@@ -1,4 +1,7 @@
 use crate::inferred_type::InferredType;
+use crate::pretty::BreakMode;
+use crate::pretty::PrettyPrint;
+use crate::pretty::Printer;
 use crate::scopes::ScopeId;
 
 use super::Expr;
@@ -50,5 +53,15 @@ impl ToTokens for Paren {
             ::kosame::repr::expr::Paren::new(&#expr)
         }
         .to_tokens(tokens);
+    }
+}
+
+impl PrettyPrint for Paren {
+    fn pretty_print(&self, printer: &mut Printer) {
+        printer.scan_text("(");
+        printer.scan_begin(BreakMode::Inconsistent);
+        self.expr.pretty_print(printer);
+        printer.scan_end();
+        printer.scan_text(")");
     }
 }

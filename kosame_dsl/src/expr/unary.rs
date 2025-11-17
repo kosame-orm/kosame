@@ -5,17 +5,22 @@ use syn::{
     parse::{Parse, ParseStream},
 };
 
-use crate::{inferred_type::InferredType, keyword, scopes::ScopeId};
+use crate::{
+    inferred_type::InferredType,
+    keyword,
+    pretty::{PrettyPrint, Printer},
+    scopes::ScopeId,
+};
 
 use super::{Expr, Visitor};
 
 pub struct Unary {
-    pub op: UnaryOp,
+    pub op: UnOp,
     pub operand: Box<Expr>,
 }
 
 impl Unary {
-    pub fn new(op: UnaryOp, operand: Expr) -> Self {
+    pub fn new(op: UnOp, operand: Expr) -> Self {
         Self {
             op,
             operand: Box::new(operand),
@@ -46,14 +51,22 @@ impl ToTokens for Unary {
     }
 }
 
+impl PrettyPrint for Unary {
+    fn pretty_print(&self, printer: &mut Printer) {
+        self.op.pretty_print(printer);
+        printer.scan_text(" ");
+        self.operand.pretty_print(printer);
+    }
+}
+
 #[allow(unused)]
-pub enum UnaryOp {
+pub enum UnOp {
     Not(keyword::not),
 }
 
-impl UnaryOp {
+impl UnOp {
     pub fn peek(input: ParseStream) -> bool {
-        input.fork().parse::<UnaryOp>().is_ok()
+        input.fork().parse::<UnOp>().is_ok()
     }
 
     pub fn precedence(&self) -> u32 {
@@ -64,7 +77,7 @@ impl UnaryOp {
     }
 }
 
-impl Parse for UnaryOp {
+impl Parse for UnOp {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         let lookahead = input.lookahead1();
         if lookahead.peek(keyword::not) {
@@ -75,7 +88,7 @@ impl Parse for UnaryOp {
     }
 }
 
-impl ToTokens for UnaryOp {
+impl ToTokens for UnOp {
     fn to_tokens(&self, tokens: &mut TokenStream) {
         macro_rules! branches {
             ($($variant:ident)*) => {
@@ -86,5 +99,13 @@ impl ToTokens for UnaryOp {
         }
 
         branches!(Not);
+    }
+}
+
+impl PrettyPrint for UnOp {
+    fn pretty_print(&self, printer: &mut Printer) {
+        match self {
+            Self::Not(inner) => inner.pretty_print(printer),
+        }
     }
 }
