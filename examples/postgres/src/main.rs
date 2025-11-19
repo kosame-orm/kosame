@@ -12,7 +12,7 @@ mod schema {
 
     pg_table! {
         // Kosame uses the familiar SQL syntax to declare tables.
-        create table kek (
+        create table lel (
             id int primary key,
         );
     }

@@ -54,7 +54,7 @@ impl ToTokens for DataType {
 }
 
 impl PrettyPrint for DataType {
-    fn pretty_print(&self, printer: &mut Printer) {
+    fn pretty_print(&self, printer: &mut Printer<'_>) {
         printer.scan_text(&self.name);
     }
 }

@@ -47,7 +47,7 @@ impl Parse for ColumnConstraints {
 }
 
 impl PrettyPrint for ColumnConstraints {
-    fn pretty_print(&self, printer: &mut Printer) {
+    fn pretty_print(&self, printer: &mut Printer<'_>) {
         for constraint in &self.0 {
             printer.scan_break(" ");
             constraint.pretty_print(printer);
@@ -86,7 +86,7 @@ impl Parse for ColumnConstraint {
 }
 
 impl PrettyPrint for ColumnConstraint {
-    fn pretty_print(&self, printer: &mut Printer) {
+    fn pretty_print(&self, printer: &mut Printer<'_>) {
         match self {
             Self::NotNull(inner) => {
                 inner.not_kw.pretty_print(printer);

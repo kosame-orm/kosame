@@ -190,7 +190,7 @@ impl ToTokens for Table {
 }
 
 impl PrettyPrint for Table {
-    fn pretty_print(&self, printer: &mut Printer) {
+    fn pretty_print(&self, printer: &mut Printer<'_>) {
         self.create_kw.pretty_print(printer);
         printer.scan_text(" ");
         self.table_kw.pretty_print(printer);

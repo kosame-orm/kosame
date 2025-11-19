@@ -1,6 +1,8 @@
 use std::{borrow::Cow, collections::VecDeque};
 
-use super::Text;
+use crate::pretty::SecondaryToken;
+
+use super::{SecondaryLexer, Text};
 
 pub const MARGIN: usize = 89;
 pub const INDENT: usize = 4;
@@ -52,8 +54,8 @@ struct PrintFrame {
     content_break: bool,
 }
 
-#[derive(Default)]
-pub struct Printer {
+pub struct Printer<'a> {
+    secondary_tokens: &'a [SecondaryToken<'a>],
     output: String,
     space: isize,
     indent: usize,
@@ -63,9 +65,14 @@ pub struct Printer {
     print_frames: Vec<PrintFrame>,
 }
 
-impl Printer {
-    pub fn new(initial_space: usize, initial_indent: usize) -> Self {
+impl<'a> Printer<'a> {
+    pub fn new(
+        secondary_tokens: &'a [SecondaryToken<'a>],
+        initial_space: usize,
+        initial_indent: usize,
+    ) -> Self {
         Self {
+            secondary_tokens,
             output: String::new(),
             space: initial_space.max(MIN_SPACE) as isize,
             indent: initial_indent,

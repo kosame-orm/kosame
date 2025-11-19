@@ -1,7 +1,7 @@
 use std::io::Read;
 
 use clap::Args;
-use kosame_dsl::pretty::{BreakMode, MARGIN, PrettyPrint, Printer, TextMode};
+use kosame_dsl::pretty::{MARGIN, pretty_print_macro_str};
 use syn::spanned::Spanned;
 
 #[derive(Args)]
@@ -62,29 +62,25 @@ impl Fmt {
                 let span = i.delimiter.span().span();
                 let source_text = span.source_text().unwrap();
                 let source_text = &source_text[1..source_text.len() - 1];
+                let initial_space = MARGIN - span.start().column;
+                let initial_indent = self.indent;
 
                 match name.to_string().as_ref() {
                     "table" | "pg_table" => {
-                        let table: kosame_dsl::schema::Table = match syn::parse_str(source_text) {
-                            Ok(body) => body,
+                        match pretty_print_macro_str::<kosame_dsl::schema::Table>(
+                            source_text,
+                            initial_space,
+                            initial_indent,
+                        ) {
+                            Ok(replacement) => self.replacements.push(Replace {
+                                start: span.byte_range().start + 1,
+                                end: span.byte_range().end - 1,
+                                replacement,
+                            }),
                             Err(error) => {
                                 self.errors.push(error);
-                                return;
                             }
                         };
-
-                        let mut printer = Printer::new(MARGIN - span.start().column, self.indent);
-                        printer.scan_begin(BreakMode::Consistent);
-                        printer.scan_text_with_mode(" ", TextMode::NoBreak);
-                        table.pretty_print(&mut printer);
-                        printer.scan_text_with_mode(" ", TextMode::NoBreak);
-                        printer.scan_end();
-
-                        self.replacements.push(Replace {
-                            start: span.byte_range().start + 1,
-                            end: span.byte_range().end - 1,
-                            replacement: printer.eof(),
-                        });
                     }
                     _ => {}
                 }

@@ -57,7 +57,7 @@ impl ToTokens for Raw {
 }
 
 impl PrettyPrint for Raw {
-    fn pretty_print(&self, printer: &mut Printer) {
+    fn pretty_print(&self, printer: &mut Printer<'_>) {
         self.dollar_token.pretty_print(printer);
         self.string.token().pretty_print(printer);
     }

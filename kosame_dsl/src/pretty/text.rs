@@ -14,7 +14,7 @@ impl<T> PrettyPrint for Option<T>
 where
     T: PrettyPrint,
 {
-    fn pretty_print(&self, printer: &mut Printer) {
+    fn pretty_print(&self, printer: &mut Printer<'_>) {
         if let Some(inner) = self {
             inner.pretty_print(printer);
         }
@@ -23,9 +23,9 @@ where
 
 impl<T> PrettyPrint for T
 where
-    for<'a> &'a T: Text,
+    for<'b> &'b T: Text,
 {
-    fn pretty_print(&self, printer: &mut Printer) {
+    fn pretty_print(&self, printer: &mut Printer<'_>) {
         printer.scan_text(self);
     }
 }
@@ -34,7 +34,7 @@ impl<T> PrettyPrint for Punctuated<T, Token![,]>
 where
     T: PrettyPrint,
 {
-    fn pretty_print(&self, printer: &mut Printer) {
+    fn pretty_print(&self, printer: &mut Printer<'_>) {
         for (index, item) in self.pairs().enumerate() {
             item.value().pretty_print(printer);
             if index != self.len() - 1 {
