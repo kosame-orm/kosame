@@ -227,7 +227,24 @@ impl<'a> Printer<'a> {
         };
     }
 
-    /// Scan the first trivia element and add it to the token queue
+    /// Forces the current print frame to break.
+    pub fn scan_force_break(&mut self) {
+        if let Some(break_index) = self.last_break {
+            match self.token_mut(break_index) {
+                Token::Break { len, .. } => *len = MARGIN,
+                _ => unreachable!(),
+            }
+        }
+
+        if let Some(begin_index) = self.begin_stack.last() {
+            match self.token_mut(*begin_index) {
+                Token::Begin { len, .. } => *len = MARGIN,
+                _ => unreachable!(),
+            }
+        }
+    }
+
+    /// Scans the first trivia element and add it to the token queue.
     fn scan_first_trivia(&mut self) {
         if self.trivia.is_empty() {
             return;
@@ -241,33 +258,23 @@ impl<'a> Printer<'a> {
         );
         self.tokens.push_back(Token::Trivia(trivia));
 
-        // Track the length for break calculations
-        if let Some(break_index) = self.last_break {
-            match self.token_mut(break_index) {
-                Token::Break { len, .. } => {
-                    // Comments force a break
-                    *len = if is_comment {
-                        MARGIN
-                    } else {
-                        *len + trivia_len
-                    };
+        if is_comment {
+            self.scan_force_break();
+        } else {
+            // Track the length for break calculations
+            if let Some(break_index) = self.last_break {
+                match self.token_mut(break_index) {
+                    Token::Break { len, .. } => *len += trivia_len,
+                    _ => unreachable!(),
                 }
-                _ => unreachable!(),
             }
-        }
 
-        // Track the length of the entire begin/end block
-        if let Some(begin_index) = self.begin_stack.last() {
-            match self.token_mut(*begin_index) {
-                Token::Begin { len, .. } => {
-                    // Comments force the parent frame to break
-                    *len = if is_comment {
-                        MARGIN
-                    } else {
-                        *len + trivia_len
-                    };
+            // Track the length of the entire begin/end block
+            if let Some(begin_index) = self.begin_stack.last() {
+                match self.token_mut(*begin_index) {
+                    Token::Begin { len, .. } => *len += trivia_len,
+                    _ => unreachable!(),
                 }
-                _ => unreachable!(),
             }
         }
 
@@ -275,7 +282,7 @@ impl<'a> Printer<'a> {
         self.trivia = &self.trivia[1..];
     }
 
-    /// Scan trivia that appears before the given token span
+    /// Scans trivia that appears before the given token span.
     fn scan_trivia_before(&mut self, token_span: Span) {
         while !self.trivia.is_empty() && self.trivia[0].comes_before(token_span) {
             self.scan_first_trivia();
