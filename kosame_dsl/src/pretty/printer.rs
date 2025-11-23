@@ -26,7 +26,6 @@ pub enum BreakMode {
 enum Token<'a> {
     Text {
         text: Cow<'static, str>,
-        span: Option<Span>,
         mode: TextMode,
     },
     Trivia(&'a Trivia<'a>),
@@ -106,7 +105,7 @@ impl<'a> Printer<'a> {
 
         let text = text.into_cow_str();
         let text_len = text.len();
-        self.tokens.push_back(Token::Text { text, span, mode });
+        self.tokens.push_back(Token::Text { text, mode });
 
         // Track the length that the previous break token has to have available to not break.
         if let Some(break_index) = self.last_break {
@@ -172,7 +171,7 @@ impl<'a> Printer<'a> {
             .unwrap_or(false);
 
         match &token {
-            Token::Text { text, mode, span } => {
+            Token::Text { text, mode, .. } => {
                 let should_print = matches!(
                     (mode, content_break),
                     (TextMode::Always, _) | (TextMode::Break, true) | (TextMode::NoBreak, false)
@@ -247,7 +246,11 @@ impl<'a> Printer<'a> {
             match self.token_mut(break_index) {
                 Token::Break { len, .. } => {
                     // Comments force a break
-                    *len = if is_comment { MARGIN } else { *len + trivia_len };
+                    *len = if is_comment {
+                        MARGIN
+                    } else {
+                        *len + trivia_len
+                    };
                 }
                 _ => unreachable!(),
             }
@@ -258,7 +261,11 @@ impl<'a> Printer<'a> {
             match self.token_mut(*begin_index) {
                 Token::Begin { len, .. } => {
                     // Comments force the parent frame to break
-                    *len = if is_comment { MARGIN } else { *len + trivia_len };
+                    *len = if is_comment {
+                        MARGIN
+                    } else {
+                        *len + trivia_len
+                    };
                 }
                 _ => unreachable!(),
             }
@@ -275,18 +282,11 @@ impl<'a> Printer<'a> {
         }
     }
 
-    /// Scan all remaining trivia at the end
-    fn scan_remaining_trivia(&mut self) {
+    pub fn eof(mut self) -> String {
         while !self.trivia.is_empty() {
             self.scan_first_trivia();
         }
-    }
 
-    pub fn eof(mut self) -> String {
-        // Scan any remaining trivia
-        self.scan_remaining_trivia();
-
-        // Print all tokens (including scanned trivia)
         while !self.tokens.is_empty() {
             self.print_first();
         }
