@@ -15,20 +15,37 @@ pub struct Span {
     pub end_col: usize,
 }
 
+impl Span {
+    /// Check if this span immediately follows another span (no gap between them)
+    pub fn immediately_follows(&self, other: &Span) -> bool {
+        self.start_line == other.end_line && self.start_col == other.end_col
+    }
+
+    /// Check if this span comes before the given token span
+    pub fn comes_before(&self, other: &Span) -> bool {
+        self.end_line < other.start_line
+            || (self.end_line == other.start_line && self.end_col <= other.start_col)
+    }
+}
+
+impl From<&proc_macro2::Span> for Span {
+    fn from(span: &proc_macro2::Span) -> Self {
+        let start = span.start();
+        let end = span.end();
+        Span {
+            start_line: start.line,
+            start_col: start.column,
+            end_line: end.line,
+            end_col: end.column,
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub struct Trivia<'a> {
     pub span: Span,
     pub content: &'a str,
     pub kind: TriviaKind,
-}
-
-impl<'a> Trivia<'a> {
-    /// Check if this trivia comes before the given token span
-    pub fn comes_before(&self, token_span: proc_macro2::Span) -> bool {
-        let token_start = token_span.start();
-        self.span.end_line < token_start.line
-            || (self.span.end_line == token_start.line && self.span.end_col <= token_start.column)
-    }
 }
 
 impl PrettyPrint for Trivia<'_> {

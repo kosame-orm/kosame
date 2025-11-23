@@ -2,7 +2,7 @@ use std::{borrow::Cow, collections::VecDeque};
 
 use proc_macro2::Span;
 
-use crate::pretty::{PrettyPrint, Trivia, TriviaKind};
+use crate::pretty::{PrettyPrint, Trivia};
 
 use super::Text;
 
@@ -129,6 +129,13 @@ impl<'a> Printer<'a> {
         };
         self.push_len(token.len());
         self.tokens.push_back(token);
+
+        // if let Some(token_span) = &span
+        //     && let Some(trivia) = self.trivia.first()
+        //     && trivia.span.immediately_follows(&token_span.into())
+        // {
+        //     self.scan_next_trivia();
+        // }
     }
 
     pub fn scan_space(&mut self) {
@@ -249,23 +256,29 @@ impl<'a> Printer<'a> {
     }
 
     /// Scans the first trivia element and convert it to tokens.
-    fn scan_first_trivia(&mut self) {
-        self.trivia[0].pretty_print(self);
+    fn scan_next_trivia(&mut self) {
+        let trivia = &self.trivia[0];
+        trivia.pretty_print(self);
         self.trivia = &self.trivia[1..];
+        if let Some(next) = self.trivia.first()
+            && next.span.immediately_follows(&trivia.span)
+        {
+            self.scan_next_trivia();
+        }
     }
 
     /// Flushes all trivia that appears before the given token span.
     /// This should be called before structural operations like `scan_begin` to ensure
     /// comments appear in the right place.
     pub fn flush_trivia(&mut self, token_span: Span) {
-        while !self.trivia.is_empty() && self.trivia[0].comes_before(token_span) {
-            self.scan_first_trivia();
+        while !self.trivia.is_empty() && self.trivia[0].span.comes_before(&(&token_span).into()) {
+            self.scan_next_trivia();
         }
     }
 
     pub fn eof(mut self) -> String {
         while !self.trivia.is_empty() {
-            self.scan_first_trivia();
+            self.scan_next_trivia();
         }
 
         while !self.tokens.is_empty() {
