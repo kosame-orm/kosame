@@ -98,9 +98,9 @@ impl<'a> Printer<'a> {
     pub fn scan_text_with_mode(&mut self, text: impl Text, mode: TextMode) {
         let span = text.span();
 
-        // Scan any trivia that appears before this token
+        // Flush any trivia that appears before this token
         if let Some(token_span) = span {
-            self.scan_trivia_before(token_span);
+            self.flush_trivia(token_span);
         }
 
         let text = text.into_cow_str();
@@ -282,8 +282,10 @@ impl<'a> Printer<'a> {
         self.trivia = &self.trivia[1..];
     }
 
-    /// Scans trivia that appears before the given token span.
-    fn scan_trivia_before(&mut self, token_span: Span) {
+    /// Flushes all trivia that appears before the given token span.
+    /// This should be called before structural operations like `scan_begin` to ensure
+    /// comments appear in the right place.
+    pub fn flush_trivia(&mut self, token_span: Span) {
         while !self.trivia.is_empty() && self.trivia[0].comes_before(token_span) {
             self.scan_first_trivia();
         }
