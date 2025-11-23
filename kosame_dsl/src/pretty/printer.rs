@@ -28,7 +28,7 @@ enum Token<'a> {
         text: Cow<'static, str>,
         mode: TextMode,
     },
-    Trivia(&'a Trivia<'a>),
+    Space,
     Break {
         text: Cow<'static, str>,
         len: usize,
@@ -38,16 +38,18 @@ enum Token<'a> {
         len: usize,
     },
     End,
+    Trivia(&'a Trivia<'a>),
 }
 
 impl<'a> Token<'a> {
     fn len(&self) -> usize {
         match self {
             Self::Text { text, .. } => text.len(),
-            Self::Trivia(trivia) => trivia.content.len(),
+            Self::Space => 1,
             Self::Break { len, .. } => *len,
             Self::Begin { len, .. } => *len,
             Self::End => 0,
+            Self::Trivia(trivia) => trivia.content.len(),
         }
     }
 }
@@ -91,6 +93,26 @@ impl<'a> Printer<'a> {
         &mut self.tokens[index]
     }
 
+    /// Registers a new token length to be tracked in the previous break and the surrounding
+    /// begin/end frame.
+    fn push_len(&mut self, token_len: usize) {
+        // Track the length that the previous break token has to have available to not break.
+        if let Some(break_index) = self.last_break {
+            match self.token_mut(break_index) {
+                Token::Break { len, .. } => *len += token_len,
+                _ => unreachable!(),
+            }
+        }
+
+        // Track the length of the entire begin/end block.
+        if let Some(begin_index) = self.begin_stack.last() {
+            match self.token_mut(*begin_index) {
+                Token::Begin { len, .. } => *len += token_len,
+                _ => unreachable!(),
+            }
+        }
+    }
+
     pub fn scan_text(&mut self, text: impl Text) {
         self.scan_text_with_mode(text, TextMode::Always);
     }
@@ -103,24 +125,18 @@ impl<'a> Printer<'a> {
             self.flush_trivia(token_span);
         }
 
-        let text = text.into_cow_str();
-        let text_len = text.len();
-        self.tokens.push_back(Token::Text { text, mode });
+        let token = Token::Text {
+            text: text.into_cow_str(),
+            mode,
+        };
+        self.push_len(token.len());
+        self.tokens.push_back(token);
+    }
 
-        // Track the length that the previous break token has to have available to not break.
-        if let Some(break_index) = self.last_break {
-            match self.token_mut(break_index) {
-                Token::Break { len, .. } => *len += text_len,
-                _ => unreachable!(),
-            }
-        }
-
-        // Track the length of the entire begin/end block.
-        if let Some(begin_index) = self.begin_stack.last() {
-            match self.token_mut(*begin_index) {
-                Token::Begin { len, .. } => *len += text_len,
-                _ => unreachable!(),
-            }
+    pub fn scan_space(&mut self) {
+        if !matches!(self.tokens.iter().last(), Some(Token::Space)) {
+            self.push_len(1);
+            self.tokens.push_back(Token::Space);
         }
     }
 
@@ -182,10 +198,14 @@ impl<'a> Printer<'a> {
                     println!("{}", text);
                 }
             }
+            Token::Space => {}
             Token::Trivia(trivia) => match trivia.kind {
-                TriviaKind::LineComment | TriviaKind::BlockComment => {
+                TriviaKind::LineComment => {
                     self.output.push_str(trivia.content);
                     self.print_break();
+                }
+                TriviaKind::BlockComment => {
+                    self.output.push_str(trivia.content);
                 }
                 TriviaKind::Whitespace => {
                     if trivia.content.chars().filter(|item| *item == '\n').count() >= 2 {
