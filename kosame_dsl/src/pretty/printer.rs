@@ -183,22 +183,17 @@ impl<'a> Printer<'a> {
                     println!("{}", text);
                 }
             }
-            Token::Trivia(trivia) => {
-                match trivia.kind {
-                    TriviaKind::LineComment | TriviaKind::BlockComment => {
-                        self.output.push_str(trivia.content);
-                        self.space -= trivia.content.len() as isize;
-                    }
-                    TriviaKind::Whitespace => {
-                        // For whitespace, we generally let the pretty printer control spacing
-                        // But we should preserve newlines that appear in the original source
-                        if trivia.content.contains('\n') {
-                            // If there are newlines, we might want to preserve them
-                            // For now, let the printer handle breaks
-                        }
+            Token::Trivia(trivia) => match trivia.kind {
+                TriviaKind::LineComment | TriviaKind::BlockComment => {
+                    self.output.push_str(trivia.content);
+                    self.print_break();
+                }
+                TriviaKind::Whitespace => {
+                    if trivia.content.chars().filter(|item| *item == '\n').count() >= 2 {
+                        self.print_break();
                     }
                 }
-            }
+            },
             Token::Break { text, len } => {
                 if content_break || *len as isize >= self.space {
                     self.print_break();
@@ -260,12 +255,23 @@ impl<'a> Printer<'a> {
 
             // Scan this trivia as a token
             let trivia_len = trivia.content.len();
+            let is_comment = matches!(
+                trivia.kind,
+                TriviaKind::LineComment | TriviaKind::BlockComment
+            );
             self.tokens.push_back(Token::Trivia(trivia));
 
             // Track the length for break calculations
             if let Some(break_index) = self.last_break {
                 match self.token_mut(break_index) {
-                    Token::Break { len, .. } => *len += trivia_len,
+                    Token::Break { len, .. } => {
+                        // Comments force a break
+                        if is_comment {
+                            *len = MARGIN;
+                        } else {
+                            *len += trivia_len;
+                        }
+                    }
                     _ => unreachable!(),
                 }
             }
@@ -273,7 +279,14 @@ impl<'a> Printer<'a> {
             // Track the length of the entire begin/end block
             if let Some(begin_index) = self.begin_stack.last() {
                 match self.token_mut(*begin_index) {
-                    Token::Begin { len, .. } => *len += trivia_len,
+                    Token::Begin { len, .. } => {
+                        // Comments force the parent frame to break
+                        if is_comment {
+                            *len = MARGIN;
+                        } else {
+                            *len += trivia_len;
+                        }
+                    }
                     _ => unreachable!(),
                 }
             }
