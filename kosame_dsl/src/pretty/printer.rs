@@ -2,7 +2,7 @@ use std::{borrow::Cow, collections::VecDeque};
 
 use proc_macro2::Span;
 
-use crate::pretty::{Trivia, TriviaKind};
+use crate::pretty::{PrettyPrint, Trivia, TriviaKind};
 
 use super::Text;
 
@@ -250,28 +250,7 @@ impl<'a> Printer<'a> {
 
     /// Scans the first trivia element and convert it to tokens.
     fn scan_first_trivia(&mut self) {
-        if self.trivia.is_empty() {
-            return;
-        }
-
-        let trivia = &self.trivia[0];
-        match trivia.kind {
-            TriviaKind::LineComment => {
-                self.scan_force_break();
-                self.scan_text(trivia.content.to_string());
-                self.scan_break("");
-            }
-            TriviaKind::BlockComment => {
-                self.scan_text(trivia.content.to_string());
-                self.scan_break(" ");
-            }
-            TriviaKind::Whitespace => {
-                if trivia.content.chars().filter(|item| *item == '\n').count() >= 2 {
-                    self.scan_break("");
-                }
-            }
-        }
-
+        self.trivia[0].pretty_print(self);
         self.trivia = &self.trivia[1..];
     }
 

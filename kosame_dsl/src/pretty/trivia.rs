@@ -1,3 +1,5 @@
+use crate::pretty::{PrettyPrint, Printer};
+
 #[derive(Debug, Clone, PartialEq)]
 pub enum TriviaKind {
     LineComment,
@@ -26,6 +28,27 @@ impl<'a> Trivia<'a> {
         let token_start = token_span.start();
         self.span.end_line < token_start.line
             || (self.span.end_line == token_start.line && self.span.end_col <= token_start.column)
+    }
+}
+
+impl PrettyPrint for Trivia<'_> {
+    fn pretty_print(&self, printer: &mut Printer<'_>) {
+        match self.kind {
+            TriviaKind::LineComment => {
+                printer.scan_force_break();
+                printer.scan_text(self.content.to_string());
+                printer.scan_break("");
+            }
+            TriviaKind::BlockComment => {
+                printer.scan_text(self.content.to_string());
+                printer.scan_break(" ");
+            }
+            TriviaKind::Whitespace => {
+                if self.content.chars().filter(|item| *item == '\n').count() >= 2 {
+                    printer.scan_break("");
+                }
+            }
+        }
     }
 }
 
