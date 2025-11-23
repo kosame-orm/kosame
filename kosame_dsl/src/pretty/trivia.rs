@@ -1,5 +1,5 @@
 #[derive(Debug, Clone, PartialEq)]
-pub enum SecondaryTokenKind {
+pub enum TriviaKind {
     LineComment,
     BlockComment,
     Whitespace,
@@ -14,14 +14,14 @@ pub struct Span {
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct SecondaryToken<'a> {
+pub struct Trivia<'a> {
     pub span: Span,
     pub content: &'a str,
-    pub kind: SecondaryTokenKind,
+    pub kind: TriviaKind,
 }
 
 /// A lexer that skips code tokens but captures comments and whitespace.
-pub struct SecondaryLexer<'a> {
+pub struct TriviaLexer<'a> {
     input: &'a str,
     // Current byte offset in the input string
     cursor: usize,
@@ -31,7 +31,7 @@ pub struct SecondaryLexer<'a> {
     col: usize,
 }
 
-impl<'a> SecondaryLexer<'a> {
+impl<'a> TriviaLexer<'a> {
     pub fn new(input: &'a str) -> Self {
         Self {
             input,
@@ -81,7 +81,7 @@ impl<'a> SecondaryLexer<'a> {
     }
 
     /// Scans whitespace and returns a Token
-    fn scan_whitespace(&mut self) -> SecondaryToken<'a> {
+    fn scan_whitespace(&mut self) -> Trivia<'a> {
         let start_idx = self.cursor;
         let (s_line, s_col) = self.current_pos();
 
@@ -94,7 +94,7 @@ impl<'a> SecondaryLexer<'a> {
         }
 
         let content = &self.input[start_idx..self.cursor];
-        SecondaryToken {
+        Trivia {
             span: Span {
                 start_line: s_line,
                 start_col: s_col,
@@ -102,12 +102,12 @@ impl<'a> SecondaryLexer<'a> {
                 end_col: self.col,
             },
             content,
-            kind: SecondaryTokenKind::Whitespace,
+            kind: TriviaKind::Whitespace,
         }
     }
 
     /// Scans a line comment (// ...)
-    fn scan_line_comment(&mut self) -> SecondaryToken<'a> {
+    fn scan_line_comment(&mut self) -> Trivia<'a> {
         let start_idx = self.cursor;
         let (s_line, s_col) = self.current_pos();
 
@@ -123,7 +123,7 @@ impl<'a> SecondaryLexer<'a> {
         }
 
         let content = &self.input[start_idx..self.cursor];
-        SecondaryToken {
+        Trivia {
             span: Span {
                 start_line: s_line,
                 start_col: s_col,
@@ -131,12 +131,12 @@ impl<'a> SecondaryLexer<'a> {
                 end_col: self.col,
             },
             content,
-            kind: SecondaryTokenKind::LineComment,
+            kind: TriviaKind::LineComment,
         }
     }
 
     /// Scans a block comment (/* ... */), handling nesting
-    fn scan_block_comment(&mut self) -> SecondaryToken<'a> {
+    fn scan_block_comment(&mut self) -> Trivia<'a> {
         let start_idx = self.cursor;
         let (s_line, s_col) = self.current_pos();
 
@@ -165,7 +165,7 @@ impl<'a> SecondaryLexer<'a> {
         }
 
         let content = &self.input[start_idx..self.cursor];
-        SecondaryToken {
+        Trivia {
             span: Span {
                 start_line: s_line,
                 start_col: s_col,
@@ -173,7 +173,7 @@ impl<'a> SecondaryLexer<'a> {
                 end_col: self.col,
             },
             content,
-            kind: SecondaryTokenKind::BlockComment,
+            kind: TriviaKind::BlockComment,
         }
     }
 
@@ -272,8 +272,8 @@ impl<'a> SecondaryLexer<'a> {
     }
 }
 
-impl<'a> Iterator for SecondaryLexer<'a> {
-    type Item = SecondaryToken<'a>;
+impl<'a> Iterator for TriviaLexer<'a> {
+    type Item = Trivia<'a>;
 
     fn next(&mut self) -> Option<Self::Item> {
         loop {
@@ -347,8 +347,8 @@ impl<'a> Iterator for SecondaryLexer<'a> {
 mod tests {
     use super::*;
 
-    fn collect_tokens(input: &str) -> Vec<SecondaryToken<'_>> {
-        SecondaryLexer::new(input).collect()
+    fn collect_tokens(input: &str) -> Vec<Trivia<'_>> {
+        TriviaLexer::new(input).collect()
     }
 
     #[test]
@@ -357,14 +357,14 @@ mod tests {
         let tokens = collect_tokens(src);
 
         assert_eq!(tokens.len(), 7);
-        assert_eq!(tokens[0].kind, SecondaryTokenKind::Whitespace); // " " after let
-        assert_eq!(tokens[1].kind, SecondaryTokenKind::Whitespace); // " " after x
-        assert_eq!(tokens[2].kind, SecondaryTokenKind::Whitespace); // " " after =
-        assert_eq!(tokens[3].kind, SecondaryTokenKind::Whitespace); // " " after ;
-        assert_eq!(tokens[4].kind, SecondaryTokenKind::LineComment); // "// hello"
+        assert_eq!(tokens[0].kind, TriviaKind::Whitespace); // " " after let
+        assert_eq!(tokens[1].kind, TriviaKind::Whitespace); // " " after x
+        assert_eq!(tokens[2].kind, TriviaKind::Whitespace); // " " after =
+        assert_eq!(tokens[3].kind, TriviaKind::Whitespace); // " " after ;
+        assert_eq!(tokens[4].kind, TriviaKind::LineComment); // "// hello"
         assert_eq!(tokens[4].content, "// hello");
-        assert_eq!(tokens[5].kind, SecondaryTokenKind::Whitespace); // "\n"
-        assert_eq!(tokens[6].kind, SecondaryTokenKind::BlockComment); // "/* world */"
+        assert_eq!(tokens[5].kind, TriviaKind::Whitespace); // "\n"
+        assert_eq!(tokens[6].kind, TriviaKind::BlockComment); // "/* world */"
         assert_eq!(tokens[6].content, "/* world */"); // "/* world */"
     }
 
@@ -390,7 +390,7 @@ mod tests {
 
         let comments: Vec<_> = tokens
             .iter()
-            .filter(|t| matches!(t.kind, SecondaryTokenKind::LineComment))
+            .filter(|t| matches!(t.kind, TriviaKind::LineComment))
             .collect();
 
         assert_eq!(comments.len(), 1);
@@ -401,7 +401,7 @@ mod tests {
     fn test_nested_block_comments() {
         let src = "/* outer /* inner */ outer */ code";
         let tokens = collect_tokens(src);
-        assert_eq!(tokens[0].kind, SecondaryTokenKind::BlockComment);
+        assert_eq!(tokens[0].kind, TriviaKind::BlockComment);
         assert_eq!(tokens[0].content, "/* outer /* inner */ outer */");
     }
 
@@ -411,11 +411,7 @@ mod tests {
         let src = r##" r#" /* fake */ "# "##; // The raw string is `r#" /* fake */ "#`
         let tokens = collect_tokens(src);
         // Should be empty or just whitespace depending on spaces
-        assert!(
-            tokens
-                .iter()
-                .all(|t| t.kind == SecondaryTokenKind::Whitespace)
-        );
+        assert!(tokens.iter().all(|t| t.kind == TriviaKind::Whitespace));
     }
 
     #[test]
@@ -430,12 +426,12 @@ mod tests {
         // "// Com" starts Line 2, col 0.
 
         let newline = &tokens[0];
-        assert_eq!(newline.kind, SecondaryTokenKind::Whitespace);
+        assert_eq!(newline.kind, TriviaKind::Whitespace);
         assert_eq!(newline.span.start_line, 1);
         assert_eq!(newline.span.end_line, 2); // Ends after newline
 
         let comment = &tokens[1];
-        assert_eq!(comment.kind, SecondaryTokenKind::LineComment);
+        assert_eq!(comment.kind, TriviaKind::LineComment);
         assert_eq!(comment.span.start_line, 2);
         assert_eq!(comment.span.start_col, 0);
     }

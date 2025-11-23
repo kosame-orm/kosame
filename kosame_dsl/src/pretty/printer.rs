@@ -1,8 +1,10 @@
 use std::{borrow::Cow, collections::VecDeque};
 
-use crate::pretty::SecondaryToken;
+use proc_macro2::Span;
 
-use super::{SecondaryLexer, Text};
+use crate::pretty::Trivia;
+
+use super::{Text, TriviaLexer};
 
 pub const MARGIN: usize = 89;
 pub const INDENT: usize = 4;
@@ -24,6 +26,7 @@ pub enum BreakMode {
 enum Token {
     Text {
         text: Cow<'static, str>,
+        span: Option<Span>,
         mode: TextMode,
     },
     Break {
@@ -55,7 +58,7 @@ struct PrintFrame {
 }
 
 pub struct Printer<'a> {
-    secondary_tokens: &'a [SecondaryToken<'a>],
+    secondary_tokens: &'a [Trivia<'a>],
     output: String,
     space: isize,
     indent: usize,
@@ -67,7 +70,7 @@ pub struct Printer<'a> {
 
 impl<'a> Printer<'a> {
     pub fn new(
-        secondary_tokens: &'a [SecondaryToken<'a>],
+        secondary_tokens: &'a [Trivia<'a>],
         initial_space: usize,
         initial_indent: usize,
     ) -> Self {
@@ -96,9 +99,10 @@ impl<'a> Printer<'a> {
     }
 
     pub fn scan_text_with_mode(&mut self, text: impl Text, mode: TextMode) {
+        let span = text.span();
         let text = text.into_cow_str();
         let text_len = text.len();
-        self.tokens.push_back(Token::Text { text, mode });
+        self.tokens.push_back(Token::Text { text, span, mode });
 
         // Track the length that the previous break token has to have available to not break.
         if let Some(break_index) = self.last_break {
@@ -156,6 +160,7 @@ impl<'a> Printer<'a> {
 
     fn print_first(&mut self) {
         let token = self.tokens.pop_front().expect("no tokens to print");
+
         let content_break = self
             .print_frames
             .last()
@@ -208,9 +213,18 @@ impl<'a> Printer<'a> {
         };
     }
 
+    fn print_first_secondary(&mut self) {
+        let token = &self.secondary_tokens[0];
+        self.secondary_tokens = &self.secondary_tokens[1..];
+    }
+
     pub fn eof(mut self) -> String {
         while !self.tokens.is_empty() {
             self.print_first();
+        }
+
+        while !self.secondary_tokens.is_empty() {
+            self.print_first_secondary();
         }
 
         self.output
