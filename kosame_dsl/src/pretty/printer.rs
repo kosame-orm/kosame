@@ -228,99 +228,57 @@ impl<'a> Printer<'a> {
         };
     }
 
+    /// Scan the first trivia element and add it to the token queue
+    fn scan_first_trivia(&mut self) {
+        if self.trivia.is_empty() {
+            return;
+        }
+
+        let trivia = &self.trivia[0];
+        let trivia_len = trivia.content.len();
+        let is_comment = matches!(
+            trivia.kind,
+            TriviaKind::LineComment | TriviaKind::BlockComment
+        );
+        self.tokens.push_back(Token::Trivia(trivia));
+
+        // Track the length for break calculations
+        if let Some(break_index) = self.last_break {
+            match self.token_mut(break_index) {
+                Token::Break { len, .. } => {
+                    // Comments force a break
+                    *len = if is_comment { MARGIN } else { *len + trivia_len };
+                }
+                _ => unreachable!(),
+            }
+        }
+
+        // Track the length of the entire begin/end block
+        if let Some(begin_index) = self.begin_stack.last() {
+            match self.token_mut(*begin_index) {
+                Token::Begin { len, .. } => {
+                    // Comments force the parent frame to break
+                    *len = if is_comment { MARGIN } else { *len + trivia_len };
+                }
+                _ => unreachable!(),
+            }
+        }
+
+        // Move to next trivia
+        self.trivia = &self.trivia[1..];
+    }
+
     /// Scan trivia that appears before the given token span
     fn scan_trivia_before(&mut self, token_span: Span) {
-        let token_start = token_span.start();
-
-        while !self.trivia.is_empty() {
-            let trivia = &self.trivia[0];
-
-            // Check if this trivia comes before the token
-            // We need to compare proc_macro2 line/column with our trivia span
-            let trivia_end_line = trivia.span.end_line;
-            let trivia_end_col = trivia.span.end_col;
-
-            let token_line = token_start.line;
-            let token_col = token_start.column;
-
-            // Trivia comes before token if:
-            // - It ends on an earlier line, OR
-            // - It ends on the same line but before the token column
-            let trivia_before_token = trivia_end_line < token_line
-                || (trivia_end_line == token_line && trivia_end_col <= token_col);
-
-            if !trivia_before_token {
-                break;
-            }
-
-            // Scan this trivia as a token
-            let trivia_len = trivia.content.len();
-            let is_comment = matches!(
-                trivia.kind,
-                TriviaKind::LineComment | TriviaKind::BlockComment
-            );
-            self.tokens.push_back(Token::Trivia(trivia));
-
-            // Track the length for break calculations
-            if let Some(break_index) = self.last_break {
-                match self.token_mut(break_index) {
-                    Token::Break { len, .. } => {
-                        // Comments force a break
-                        if is_comment {
-                            *len = MARGIN;
-                        } else {
-                            *len += trivia_len;
-                        }
-                    }
-                    _ => unreachable!(),
-                }
-            }
-
-            // Track the length of the entire begin/end block
-            if let Some(begin_index) = self.begin_stack.last() {
-                match self.token_mut(*begin_index) {
-                    Token::Begin { len, .. } => {
-                        // Comments force the parent frame to break
-                        if is_comment {
-                            *len = MARGIN;
-                        } else {
-                            *len += trivia_len;
-                        }
-                    }
-                    _ => unreachable!(),
-                }
-            }
-
-            // Move to next trivia
-            self.trivia = &self.trivia[1..];
+        while !self.trivia.is_empty() && self.trivia[0].comes_before(token_span) {
+            self.scan_first_trivia();
         }
     }
 
     /// Scan all remaining trivia at the end
     fn scan_remaining_trivia(&mut self) {
         while !self.trivia.is_empty() {
-            let trivia = &self.trivia[0];
-            let trivia_len = trivia.content.len();
-            self.tokens.push_back(Token::Trivia(trivia));
-
-            // Track the length for break calculations
-            if let Some(break_index) = self.last_break {
-                match self.token_mut(break_index) {
-                    Token::Break { len, .. } => *len += trivia_len,
-                    _ => unreachable!(),
-                }
-            }
-
-            // Track the length of the entire begin/end block
-            if let Some(begin_index) = self.begin_stack.last() {
-                match self.token_mut(*begin_index) {
-                    Token::Begin { len, .. } => *len += trivia_len,
-                    _ => unreachable!(),
-                }
-            }
-
-            // Move to next trivia
-            self.trivia = &self.trivia[1..];
+            self.scan_first_trivia();
         }
     }
 

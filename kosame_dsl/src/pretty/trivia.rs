@@ -20,6 +20,15 @@ pub struct Trivia<'a> {
     pub kind: TriviaKind,
 }
 
+impl<'a> Trivia<'a> {
+    /// Check if this trivia comes before the given token span
+    pub fn comes_before(&self, token_span: proc_macro2::Span) -> bool {
+        let token_start = token_span.start();
+        self.span.end_line < token_start.line
+            || (self.span.end_line == token_start.line && self.span.end_col <= token_start.column)
+    }
+}
+
 /// A lexer that skips code tokens but captures comments and whitespace.
 pub struct TriviaLexer<'a> {
     input: &'a str,
