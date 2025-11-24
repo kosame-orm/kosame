@@ -5,10 +5,13 @@ mod schema {
     use kosame::pg_table;
 
     pg_table! {
-        // Kosame uses the familiar SQL syntax to declare tables.
         create table pip (
         );
     }
+    pg_table!(
+        create table pip (
+        );
+    );
 
     pg_table! {
         // Kosame uses the familiar SQL syntax to declare tables.

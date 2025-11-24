@@ -61,20 +61,19 @@ impl Fmt {
                 let name = &i.path.segments.last().expect("paths cannot be empty").ident;
                 let span = i.delimiter.span().span();
                 let source_text = span.source_text().unwrap();
-                let source_text = &source_text[1..source_text.len() - 1];
                 let initial_space = MARGIN - span.start().column;
                 let initial_indent = self.indent;
 
                 match name.to_string().as_ref() {
                     "table" | "pg_table" => {
                         match pretty_print_macro_str::<kosame_dsl::schema::Table>(
-                            source_text,
+                            &source_text,
                             initial_space,
                             initial_indent,
                         ) {
                             Ok(replacement) => self.replacements.push(Replace {
-                                start: span.byte_range().start + 1,
-                                end: span.byte_range().end - 1,
+                                start: span.byte_range().start,
+                                end: span.byte_range().end,
                                 replacement,
                             }),
                             Err(error) => {

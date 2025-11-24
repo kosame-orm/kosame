@@ -1,4 +1,5 @@
 mod delim;
+mod r#macro;
 mod printer;
 mod ring_buffer;
 mod rust;
@@ -7,6 +8,7 @@ mod text;
 mod trivia;
 
 pub use delim::*;
+pub use r#macro::*;
 pub use printer::*;
 pub use ring_buffer::*;
 pub use span::*;
@@ -23,13 +25,11 @@ pub fn pretty_print_macro_str<T>(
 where
     T: Parse + PrettyPrint,
 {
-    let ast: T = syn::parse_str(source_text)?;
+    let ast: Macro<T> = syn::parse_str(source_text)?;
     let trivia = Lexer::new(source_text).collect::<Vec<_>>();
 
     let mut printer = Printer::new(&trivia, initial_space, initial_indent);
-    printer.scan_begin(None, BreakMode::Consistent);
     ast.pretty_print(&mut printer);
-    printer.scan_end(None);
 
     Ok(printer.eof())
 }
