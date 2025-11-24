@@ -64,25 +64,27 @@ impl Fmt {
                 let initial_space = MARGIN - span.start().column;
                 let initial_indent = self.indent;
 
-                match name.to_string().as_ref() {
-                    "table" | "pg_table" => {
-                        match pretty_print_macro_str::<kosame_dsl::schema::Table>(
-                            &source_text,
-                            initial_space,
-                            initial_indent,
-                        ) {
-                            Ok(replacement) => self.replacements.push(Replace {
-                                start: span.byte_range().start,
-                                end: span.byte_range().end,
-                                replacement,
-                            }),
-                            Err(error) => {
-                                self.errors.push(error);
-                            }
-                        };
+                let result =
+                    match name.to_string().as_ref() {
+                        "table" | "pg_table" => Some(pretty_print_macro_str::<
+                            kosame_dsl::schema::Table,
+                        >(
+                            &source_text, initial_space, initial_indent
+                        )),
+                        _ => None,
+                    };
+
+                match result {
+                    Some(Ok(replacement)) => self.replacements.push(Replace {
+                        start: span.byte_range().start,
+                        end: span.byte_range().end,
+                        replacement,
+                    }),
+                    Some(Err(error)) => {
+                        self.errors.push(error);
                     }
-                    _ => {}
-                }
+                    None => {}
+                };
             }
         }
 
