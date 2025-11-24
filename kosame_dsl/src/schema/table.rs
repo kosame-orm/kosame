@@ -24,8 +24,8 @@ use syn::{
 pub struct Table {
     _token_stream: TokenStream,
 
-    pub _inner_attrs: Vec<Attribute>,
-    pub _outer_attrs: Vec<Attribute>,
+    pub inner_attrs: Vec<Attribute>,
+    pub outer_attrs: Vec<Attribute>,
 
     pub create_kw: keyword::create,
     pub table_kw: keyword::table,
@@ -45,12 +45,12 @@ impl Parse for Table {
         let content;
         Ok(Self {
             _token_stream: input.fork().parse()?,
-            _inner_attrs: {
+            inner_attrs: {
                 let attrs = Attribute::parse_inner(input)?;
                 CustomMeta::parse_attrs(&attrs, MetaLocation::TableInner)?;
                 attrs
             },
-            _outer_attrs: {
+            outer_attrs: {
                 let attrs = Attribute::parse_outer(input)?;
                 CustomMeta::parse_attrs(&attrs, MetaLocation::TableOuter)?;
                 attrs
@@ -191,6 +191,14 @@ impl ToTokens for Table {
 
 impl PrettyPrint for Table {
     fn pretty_print(&self, printer: &mut Printer<'_>) {
+        for attr in &self.inner_attrs {
+            attr.pretty_print(printer);
+            printer.scan_break(true);
+        }
+        for attr in &self.outer_attrs {
+            attr.pretty_print(printer);
+            printer.scan_break(true);
+        }
         self.create_kw.pretty_print(printer);
         printer.scan_text(" ");
         self.table_kw.pretty_print(printer);

@@ -102,6 +102,8 @@ macro_rules! impl_token {
     };
 }
 
+impl_token!(#);
+impl_token!(!);
 impl_token!(=);
 impl_token!(.);
 impl_token!(,);

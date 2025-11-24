@@ -1,4 +1,4 @@
-use std::{borrow::Cow, collections::VecDeque};
+use std::borrow::Cow;
 
 use proc_macro2::Span;
 

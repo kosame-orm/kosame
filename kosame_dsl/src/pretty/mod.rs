@@ -1,11 +1,13 @@
 mod printer;
 mod ring_buffer;
+mod rust;
 mod span;
 mod text;
 mod trivia;
 
 pub use printer::*;
 pub use ring_buffer::*;
+pub use rust::*;
 pub use span::*;
 pub use text::*;
 pub use trivia::*;
