@@ -1,19 +1,10 @@
-use std::borrow::Cow;
+use crate::pretty::TextMode;
 
-use proc_macro2::Span;
-
-use super::{PrettyPrint, RingBuffer, Text, Trivia};
+use super::{PrettyPrint, RingBuffer, Span, Text, Trivia};
 
 pub const MARGIN: usize = 89;
 pub const INDENT: usize = 4;
 pub const MIN_SPACE: usize = 60;
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum TextMode {
-    Always,
-    NoBreak,
-    Break,
-}
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum BreakMode {
@@ -22,25 +13,16 @@ pub enum BreakMode {
 }
 
 enum Token {
-    Text {
-        text: Cow<'static, str>,
-        mode: TextMode,
-    },
-    Break {
-        space: bool,
-        len: usize,
-    },
-    Begin {
-        mode: BreakMode,
-        len: usize,
-    },
+    Text(Text),
+    Break { space: bool, len: usize },
+    Begin { mode: BreakMode, len: usize },
     End,
 }
 
 impl Token {
     fn len(&self) -> usize {
         match self {
-            Self::Text { text, .. } => text.len(),
+            Self::Text(text) => text.len(),
             Self::Break { len, .. } => *len,
             Self::Begin { len, .. } => *len,
             Self::End => 0,
@@ -99,11 +81,8 @@ impl<'a> Printer<'a> {
         }
     }
 
-    pub fn scan_text(&mut self, text: impl Text) {
-        self.scan_text_with_mode(text, TextMode::Always);
-    }
-
-    pub fn scan_text_with_mode(&mut self, text: impl Text, mode: TextMode) {
+    pub fn scan_text(&mut self, text: impl Into<Text>) {
+        let text = text.into();
         let span = text.span();
 
         // Flush any trivia that appears before this token
@@ -111,10 +90,7 @@ impl<'a> Printer<'a> {
             self.flush_trivia(token_span);
         }
 
-        let token = Token::Text {
-            text: text.into_cow_str(),
-            mode,
-        };
+        let token = Token::Text(text);
         self.push_len(token.len());
         self.tokens.push_back(token);
 
@@ -172,9 +148,9 @@ impl<'a> Printer<'a> {
             .unwrap_or(false);
 
         match &token {
-            Token::Text { text, mode, .. } => {
+            Token::Text(text) => {
                 let should_print = matches!(
-                    (mode, content_break),
+                    (text.mode(), content_break),
                     (TextMode::Always, _) | (TextMode::Break, true) | (TextMode::NoBreak, false)
                 );
                 if should_print {
@@ -238,7 +214,7 @@ impl<'a> Printer<'a> {
     /// This should be called before structural operations like `scan_begin` to ensure
     /// comments appear in the right place.
     pub fn flush_trivia(&mut self, token_span: Span) {
-        while !self.trivia.is_empty() && self.trivia[0].span.comes_before(&(&token_span).into()) {
+        while !self.trivia.is_empty() && self.trivia[0].span.comes_before(&token_span) {
             self.scan_next_trivia();
         }
     }

@@ -1,6 +1,4 @@
-use proc_macro2::Span;
 use quote::ToTokens;
-use std::borrow::Cow;
 use syn::spanned::Spanned;
 
 macro_rules! custom_keyword {
@@ -26,13 +24,13 @@ macro_rules! custom_keyword {
             }
         }
 
-        impl crate::pretty::Text for &$kw {
-            fn into_cow_str(self) -> Cow<'static, str> {
-                self.to_token_stream().to_string().into()
-            }
-
-            fn span(&self) -> Option<Span> {
-                Some(<Self as Spanned>::span(self))
+        impl From<&$kw> for crate::pretty::Text {
+            fn from(value: &$kw) -> Self {
+                Self::new(
+                    value.to_token_stream().to_string(),
+                    Some(value.span().into()),
+                    crate::pretty::TextMode::Always,
+                )
             }
         }
     };

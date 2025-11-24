@@ -1,3 +1,4 @@
+mod delimiter;
 mod printer;
 mod ring_buffer;
 mod rust;
@@ -5,6 +6,7 @@ mod span;
 mod text;
 mod trivia;
 
+pub use delimiter::*;
 pub use printer::*;
 pub use ring_buffer::*;
 pub use rust::*;
@@ -13,10 +15,6 @@ pub use text::*;
 pub use trivia::*;
 
 use syn::parse::Parse;
-
-pub trait PrettyPrint {
-    fn pretty_print(&self, printer: &mut Printer<'_>);
-}
 
 pub fn pretty_print_macro_str<T>(
     source_text: &str,
@@ -31,10 +29,46 @@ where
 
     let mut printer = Printer::new(&trivia, initial_space, initial_indent);
     printer.scan_begin(BreakMode::Consistent);
-    printer.scan_text_with_mode(" ", TextMode::NoBreak);
+    printer.scan_text(Text::new(" ", Some(Span::first()), TextMode::NoBreak));
     ast.pretty_print(&mut printer);
-    printer.scan_text_with_mode(" ", TextMode::NoBreak);
+    printer.scan_text(Text::new(
+        " ",
+        Some(Span::last(source_text)),
+        TextMode::NoBreak,
+    ));
     printer.scan_end();
 
     Ok(printer.eof())
+}
+
+pub trait PrettyPrint {
+    fn pretty_print(&self, printer: &mut Printer<'_>);
+}
+
+impl<T> PrettyPrint for Option<T>
+where
+    T: PrettyPrint,
+{
+    fn pretty_print(&self, printer: &mut Printer<'_>) {
+        if let Some(inner) = self {
+            inner.pretty_print(printer);
+        }
+    }
+}
+
+impl<T> PrettyPrint for syn::punctuated::Punctuated<T, syn::Token![,]>
+where
+    T: PrettyPrint,
+{
+    fn pretty_print(&self, printer: &mut Printer<'_>) {
+        for (index, item) in self.pairs().enumerate() {
+            item.value().pretty_print(printer);
+            if index != self.len() - 1 {
+                item.punct().unwrap().pretty_print(printer);
+                printer.scan_break(true);
+            } else {
+                printer.scan_text(Text::new(",", None, TextMode::Break));
+            }
+        }
+    }
 }

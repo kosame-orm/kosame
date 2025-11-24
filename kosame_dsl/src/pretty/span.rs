@@ -11,6 +11,34 @@ impl Span {
         Self { start, end }
     }
 
+    pub fn first() -> Self {
+        Self {
+            start: LineColumn { line: 1, column: 0 },
+            end: LineColumn { line: 1, column: 1 },
+        }
+    }
+
+    pub fn last(source_text: &str) -> Self {
+        let mut line = 1;
+        let mut column = 0;
+        for char in source_text.chars() {
+            match char {
+                '\n' => {
+                    line += 1;
+                    column = 0;
+                }
+                _ => column += 1,
+            }
+        }
+        Self {
+            start: LineColumn { line, column },
+            end: LineColumn {
+                line,
+                column: column + 1,
+            },
+        }
+    }
+
     /// Returns true if this span immediately follows another span (no gap between them).
     pub fn immediately_follows(&self, other: &Span) -> bool {
         self.start.line == other.end.line && self.start.column == other.end.column
@@ -31,8 +59,8 @@ impl Span {
     }
 }
 
-impl From<&proc_macro2::Span> for Span {
-    fn from(span: &proc_macro2::Span) -> Self {
+impl From<proc_macro2::Span> for Span {
+    fn from(span: proc_macro2::Span) -> Self {
         Span {
             start: span.start(),
             end: span.end(),

@@ -1,102 +1,108 @@
-use std::borrow::Cow;
+use std::{borrow::Cow, ops::Deref};
 
-use proc_macro2::{Literal, Span};
+use proc_macro2::Literal;
 use quote::ToTokens;
-use syn::{Ident, Token, punctuated::Punctuated, spanned::Spanned};
+use syn::{Ident, spanned::Spanned};
 
-use super::{PrettyPrint, Printer, TextMode};
+use super::{PrettyPrint, Printer, Span};
 
-pub trait Text {
-    fn into_cow_str(self) -> Cow<'static, str>;
-    fn span(&self) -> Option<Span>;
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub enum TextMode {
+    Always,
+    NoBreak,
+    Break,
 }
 
-impl<T> PrettyPrint for Option<T>
-where
-    T: PrettyPrint,
-{
-    fn pretty_print(&self, printer: &mut Printer<'_>) {
-        if let Some(inner) = self {
-            inner.pretty_print(printer);
+pub struct Text {
+    string: Cow<'static, str>,
+    span: Option<Span>,
+    mode: TextMode,
+}
+
+impl Text {
+    pub fn new(string: impl Into<Cow<'static, str>>, span: Option<Span>, mode: TextMode) -> Self {
+        Self {
+            string: string.into(),
+            span,
+            mode,
         }
+    }
+
+    pub fn span(&self) -> Option<Span> {
+        self.span
+    }
+
+    pub fn mode(&self) -> TextMode {
+        self.mode
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
+    pub fn len(&self) -> usize {
+        self.string.len()
+    }
+}
+
+impl Deref for Text {
+    type Target = str;
+
+    fn deref(&self) -> &Self::Target {
+        self.string.deref()
     }
 }
 
 impl<T> PrettyPrint for T
 where
-    for<'b> &'b T: Text,
+    for<'b> &'b T: Into<Text>,
 {
     fn pretty_print(&self, printer: &mut Printer<'_>) {
         printer.scan_text(self);
     }
 }
 
-impl<T> PrettyPrint for Punctuated<T, Token![,]>
-where
-    T: PrettyPrint,
-{
-    fn pretty_print(&self, printer: &mut Printer<'_>) {
-        for (index, item) in self.pairs().enumerate() {
-            item.value().pretty_print(printer);
-            if index != self.len() - 1 {
-                item.punct().unwrap().pretty_print(printer);
-                printer.scan_break(true);
-            } else {
-                printer.scan_text_with_mode(",", TextMode::Break);
-            }
-        }
+impl From<&'static str> for Text {
+    fn from(value: &'static str) -> Self {
+        Self::new(value, None, TextMode::Always)
     }
 }
 
-impl Text for &'static str {
-    fn into_cow_str(self) -> Cow<'static, str> {
-        self.into()
-    }
-
-    fn span(&self) -> Option<Span> {
-        None
+impl From<String> for Text {
+    fn from(value: String) -> Self {
+        Self::new(value, None, TextMode::Always)
     }
 }
 
-impl Text for String {
-    fn into_cow_str(self) -> Cow<'static, str> {
-        self.into()
-    }
-
-    fn span(&self) -> Option<Span> {
-        None
-    }
-}
-
-impl Text for &Ident {
-    fn into_cow_str(self) -> Cow<'static, str> {
-        self.to_string().into()
-    }
-
-    fn span(&self) -> Option<Span> {
-        Some(<Self as Spanned>::span(self))
+impl From<&Ident> for Text {
+    fn from(value: &Ident) -> Self {
+        Self::new(
+            value.to_string(),
+            Some(value.span().into()),
+            TextMode::Always,
+        )
     }
 }
 
-impl Text for &Literal {
-    fn into_cow_str(self) -> Cow<'static, str> {
-        self.to_string().into()
-    }
-
-    fn span(&self) -> Option<Span> {
-        Some(<Self as Spanned>::span(self))
+impl From<&Literal> for Text {
+    fn from(value: &Literal) -> Self {
+        Self::new(
+            value.to_string(),
+            Some(value.span().into()),
+            TextMode::Always,
+        )
     }
 }
 
 macro_rules! impl_token {
     ($token:tt) => {
-        impl Text for &syn::Token![$token] {
-            fn into_cow_str(self) -> Cow<'static, str> {
-                self.to_token_stream().to_string().into()
-            }
-
-            fn span(&self) -> Option<Span> {
-                Some(<Self as Spanned>::span(self))
+        impl From<&syn::Token![$token]> for Text {
+            fn from(value: &syn::Token![$token]) -> Self {
+                Self::new(
+                    value.to_token_stream().to_string(),
+                    Some(value.span().into()),
+                    TextMode::Always,
+                )
             }
         }
     };
