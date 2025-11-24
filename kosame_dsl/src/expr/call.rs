@@ -1,6 +1,6 @@
 use crate::{
     inferred_type::InferredType,
-    pretty::{BreakMode, PrettyPrint, Printer, TextMode},
+    pretty::{BreakMode, PrettyPrint, Printer},
     scopes::ScopeId,
 };
 

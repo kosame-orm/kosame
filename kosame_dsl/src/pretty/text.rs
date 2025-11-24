@@ -40,7 +40,7 @@ where
             item.value().pretty_print(printer);
             if index != self.len() - 1 {
                 item.punct().unwrap().pretty_print(printer);
-                printer.scan_break(" ");
+                printer.scan_break(true);
             } else {
                 printer.scan_text_with_mode(",", TextMode::Break);
             }

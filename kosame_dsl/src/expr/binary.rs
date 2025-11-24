@@ -64,7 +64,7 @@ impl ToTokens for Binary {
 impl PrettyPrint for Binary {
     fn pretty_print(&self, printer: &mut Printer) {
         self.lhs.pretty_print(printer);
-        printer.scan_break(" ");
+        printer.scan_break(true);
         self.op.pretty_print(printer);
         printer.scan_text(" ");
         self.rhs.pretty_print(printer);

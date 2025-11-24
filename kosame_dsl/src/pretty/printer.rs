@@ -28,9 +28,8 @@ enum Token {
         text: Cow<'static, str>,
         mode: TextMode,
     },
-    Space,
     Break {
-        text: Cow<'static, str>,
+        space: bool,
         len: usize,
     },
     Begin {
@@ -44,7 +43,6 @@ impl Token {
     fn len(&self) -> usize {
         match self {
             Self::Text { text, .. } => text.len(),
-            Self::Space => 1,
             Self::Break { len, .. } => *len,
             Self::Begin { len, .. } => *len,
             Self::End => 0,
@@ -138,18 +136,10 @@ impl<'a> Printer<'a> {
         // }
     }
 
-    pub fn scan_space(&mut self) {
-        if !matches!(self.tokens.iter().last(), Some(Token::Space)) {
-            self.push_len(1);
-            self.tokens.push_back(Token::Space);
-        }
-    }
-
-    pub fn scan_break(&mut self, text: impl Into<Cow<'static, str>>) {
-        let text = text.into();
-        let len = text.len();
+    pub fn scan_break(&mut self, space: bool) {
         self.last_break = Some(self.tokens.len());
-        self.tokens.push_back(Token::Break { text, len });
+        let len = if space { 1 } else { 0 };
+        self.tokens.push_back(Token::Break { space, len });
     }
 
     pub fn scan_begin(&mut self, mode: BreakMode) {
@@ -203,13 +193,14 @@ impl<'a> Printer<'a> {
                     println!("{}", text);
                 }
             }
-            Token::Space => {}
-            Token::Break { text, len } => {
+            Token::Break { space, len } => {
                 if content_break || *len as isize >= self.space {
                     self.print_break();
                 } else {
-                    self.output.push_str(text);
-                    self.space -= text.len() as isize;
+                    if *space {
+                        self.output.push(' ');
+                    }
+                    self.space -= *len as isize;
                 }
             }
             Token::Begin { mode, len, .. } => {

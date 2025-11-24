@@ -83,7 +83,7 @@ impl PrettyPrint for Cast {
         printer.scan_text(" (");
         printer.scan_begin(BreakMode::Inconsistent);
         self.value.pretty_print(printer);
-        printer.scan_break(" ");
+        printer.scan_break(true);
         self.as_token.pretty_print(printer);
         printer.scan_text(" ");
         self.data_type.pretty_print(printer);
