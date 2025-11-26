@@ -61,12 +61,6 @@ impl kosame_sql::FmtSql for Fields<'_> {
     where
         D: kosame_sql::Dialect,
     {
-        for (index, field) in self.0.iter().enumerate() {
-            field.fmt_sql(formatter)?;
-            if index != self.0.len() - 1 {
-                formatter.write_str(", ")?;
-            }
-        }
-        Ok(())
+        kosame_sql::Punctuated::new(self.0, ",").fmt_sql(formatter)
     }
 }

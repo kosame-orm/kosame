@@ -18,9 +18,7 @@ impl kosame_sql::FmtSql for TableAlias<'_> {
         D: kosame_sql::Dialect,
     {
         formatter.write_ident(self.alias)?;
-        if let Some(columns) = &self.columns {
-            columns.fmt_sql(formatter)?;
-        }
+        self.columns.fmt_sql(formatter)?;
         Ok(())
     }
 }

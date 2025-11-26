@@ -83,28 +83,13 @@ impl kosame_sql::FmtSql for Select<'_> {
         D: kosame_sql::Dialect,
     {
         self.select.fmt_sql(formatter)?;
-        if let Some(inner) = self.from.as_ref() {
-            inner.fmt_sql(formatter)?;
-        }
-        if let Some(inner) = self.r#where.as_ref() {
-            inner.fmt_sql(formatter)?;
-        }
-        if let Some(inner) = self.group_by.as_ref() {
-            inner.fmt_sql(formatter)?;
-        }
-        if let Some(inner) = self.having.as_ref() {
-            inner.fmt_sql(formatter)?;
-        }
-        if let Some(inner) = self.order_by.as_ref() {
-            inner.fmt_sql(formatter)?;
-        }
-        if let Some(inner) = self.limit.as_ref() {
-            inner.fmt_sql(formatter)?;
-        }
-        if let Some(inner) = self.offset.as_ref() {
-            inner.fmt_sql(formatter)?;
-        }
-
+        self.from.fmt_sql(formatter)?;
+        self.r#where.fmt_sql(formatter)?;
+        self.group_by.fmt_sql(formatter)?;
+        self.having.fmt_sql(formatter)?;
+        self.order_by.fmt_sql(formatter)?;
+        self.limit.fmt_sql(formatter)?;
+        self.offset.fmt_sql(formatter)?;
         Ok(())
     }
 }

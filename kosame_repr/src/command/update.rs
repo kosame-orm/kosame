@@ -62,17 +62,9 @@ impl kosame_sql::FmtSql for Update<'_> {
         formatter.write_str("update ")?;
         self.target_table.fmt_sql(formatter)?;
         self.set.fmt_sql(formatter)?;
-
-        if let Some(from) = &self.from {
-            from.fmt_sql(formatter)?;
-        }
-        if let Some(r#where) = &self.r#where {
-            r#where.fmt_sql(formatter)?;
-        }
-        if let Some(returning) = &self.returning {
-            returning.fmt_sql(formatter)?;
-        }
-
+        self.from.fmt_sql(formatter)?;
+        self.r#where.fmt_sql(formatter)?;
+        self.returning.fmt_sql(formatter)?;
         Ok(())
     }
 }

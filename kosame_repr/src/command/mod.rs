@@ -27,9 +27,7 @@ impl kosame_sql::FmtSql for Command<'_> {
     where
         D: kosame_sql::Dialect,
     {
-        if let Some(with) = &self.with {
-            with.fmt_sql(formatter)?;
-        }
+        self.with.fmt_sql(formatter)?;
         self.command_type.fmt_sql(formatter)
     }
 }

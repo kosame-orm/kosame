@@ -34,12 +34,7 @@ impl kosame_sql::FmtSql for Call<'_> {
         }
 
         formatter.write_str("(")?;
-        for (index, param) in self.params.iter().enumerate() {
-            param.fmt_sql(formatter)?;
-            if index != self.params.len() - 1 {
-                formatter.write_str(", ")?;
-            }
-        }
+        kosame_sql::Punctuated::new(self.params, ",").fmt_sql(formatter)?;
         formatter.write_str(")")?;
         Ok(())
     }

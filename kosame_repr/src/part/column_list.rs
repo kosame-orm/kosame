@@ -22,12 +22,7 @@ impl kosame_sql::FmtSql for ColumnList<'_> {
         D: kosame_sql::Dialect,
     {
         formatter.write_str(" (")?;
-        for (index, alias) in self.columns.iter().enumerate() {
-            formatter.write_ident(alias)?;
-            if index != self.columns.len() - 1 {
-                formatter.write_str(", ")?;
-            }
-        }
+        kosame_sql::Punctuated::new(self.columns, ",").fmt_sql(formatter)?;
         formatter.write_str(")")?;
         Ok(())
     }

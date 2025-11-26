@@ -20,12 +20,7 @@ impl kosame_sql::FmtSql for With<'_> {
         formatter: &mut kosame_sql::Formatter<D>,
     ) -> kosame_sql::Result {
         formatter.write_str("with ")?;
-        for (index, item) in self.items.iter().enumerate() {
-            item.fmt_sql(formatter)?;
-            if index != self.items.len() - 1 {
-                formatter.write_str(", ")?;
-            }
-        }
+        kosame_sql::Punctuated::new(self.items, ",").fmt_sql(formatter)?;
         formatter.write_str(" ")?;
         Ok(())
     }

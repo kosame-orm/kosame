@@ -25,12 +25,7 @@ impl kosame_sql::FmtSql for Values<'_> {
         formatter: &mut kosame_sql::Formatter<D>,
     ) -> kosame_sql::Result {
         formatter.write_str(" values ")?;
-        for (index, row) in self.rows.iter().enumerate() {
-            row.fmt_sql(formatter)?;
-            if index != self.rows.len() - 1 {
-                formatter.write_str(", ")?;
-            }
-        }
+        kosame_sql::Punctuated::new(self.rows, ",").fmt_sql(formatter)?;
         Ok(())
     }
 }
@@ -58,12 +53,7 @@ impl kosame_sql::FmtSql for ValuesRow<'_> {
         formatter: &mut kosame_sql::Formatter<D>,
     ) -> kosame_sql::Result {
         formatter.write_str("(")?;
-        for (index, item) in self.items.iter().enumerate() {
-            item.fmt_sql(formatter)?;
-            if index != self.items.len() - 1 {
-                formatter.write_str(", ")?;
-            }
-        }
+        kosame_sql::Punctuated::new(self.items, ",").fmt_sql(formatter)?;
         formatter.write_str(")")?;
         Ok(())
     }

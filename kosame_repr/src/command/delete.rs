@@ -43,12 +43,9 @@ impl kosame_sql::FmtSql for Delete<'_> {
             formatter.write_str(" using ")?;
             using.fmt_sql(formatter)?;
         }
-        if let Some(r#where) = &self.r#where {
-            r#where.fmt_sql(formatter)?;
-        }
-        if let Some(returning) = &self.returning {
-            returning.fmt_sql(formatter)?;
-        }
+
+        self.r#where.fmt_sql(formatter)?;
+        self.returning.fmt_sql(formatter)?;
 
         Ok(())
     }

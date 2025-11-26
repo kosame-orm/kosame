@@ -47,10 +47,7 @@ impl kosame_sql::FmtSql for Insert<'_> {
         self.target_table.fmt_sql(formatter)?;
 
         self.values.fmt_sql(formatter)?;
-
-        if let Some(returning) = &self.returning {
-            returning.fmt_sql(formatter)?;
-        }
+        self.returning.fmt_sql(formatter)?;
 
         Ok(())
     }
