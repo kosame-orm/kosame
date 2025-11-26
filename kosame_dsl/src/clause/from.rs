@@ -161,14 +161,17 @@ impl FromItem {
         match self {
             Self::Table {
                 table_path, alias, ..
-            } => Some(alias.as_ref().map(|alias| &alias.name).unwrap_or_else(|| {
-                &table_path
-                    .as_path()
-                    .segments
-                    .last()
-                    .expect("path cannot be empty")
-                    .ident
-            })),
+            } => Some(alias.as_ref().map_or_else(
+                || {
+                    &table_path
+                        .as_path()
+                        .segments
+                        .last()
+                        .expect("path cannot be empty")
+                        .ident
+                },
+                |alias| &alias.name,
+            )),
             Self::Subquery { alias, .. } => alias.as_ref().map(|alias| &alias.name),
         }
     }

@@ -22,7 +22,7 @@ use syn::{
 };
 
 pub struct Table {
-    _token_stream: TokenStream,
+    token_stream: TokenStream,
 
     pub inner_attrs: Vec<Attribute>,
     pub outer_attrs: Vec<Attribute>,
@@ -44,7 +44,7 @@ impl Parse for Table {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         let content;
         Ok(Self {
-            _token_stream: input.fork().parse()?,
+            token_stream: input.fork().parse()?,
             inner_attrs: {
                 let attrs = Attribute::parse_inner(input)?;
                 CustomMeta::parse_attrs(&attrs, MetaLocation::TableInner)?;
@@ -67,6 +67,7 @@ impl Parse for Table {
 }
 
 impl ToTokens for Table {
+    #[allow(clippy::too_many_lines)]
     fn to_tokens(&self, tokens: &mut TokenStream) {
         let name = self.name.to_string();
         let rust_name = Ident::new(
@@ -132,7 +133,7 @@ impl ToTokens for Table {
 
         let inject_macro = {
             let unique_macro_name = unique_macro!("__kosame_inject_{}", self.name.span());
-            let token_stream = &self._token_stream;
+            let token_stream = &self.token_stream;
 
             quote! {
                 #[macro_export]

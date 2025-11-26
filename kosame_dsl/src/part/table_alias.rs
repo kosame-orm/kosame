@@ -9,7 +9,7 @@ use syn::{
 use crate::{clause::peek_clause, keyword, part::ColumnList, quote_option::QuoteOption};
 
 pub struct TableAlias {
-    pub _as_token: Option<Token![as]>,
+    pub as_token: Option<Token![as]>,
     pub name: Ident,
     pub columns: Option<ColumnList>,
 }
@@ -42,7 +42,7 @@ impl TableAlias {
 impl Parse for TableAlias {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         Ok(Self {
-            _as_token: input.peek(Token![as]).then(|| input.parse()).transpose()?,
+            as_token: input.peek(Token![as]).then(|| input.parse()).transpose()?,
             name: input.parse()?,
             columns: {
                 let columns = input
@@ -51,7 +51,7 @@ impl Parse for TableAlias {
                     .transpose()?;
                 if let Some(columns) = columns {
                     return Err(syn::Error::new(
-                        columns._paren_token.span.span(),
+                        columns.paren_token.span.span(),
                         "column aliases are currently unsupported",
                     ));
                 }

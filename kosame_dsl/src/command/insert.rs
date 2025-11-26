@@ -2,11 +2,17 @@ use proc_macro2::TokenStream;
 use quote::{ToTokens, quote};
 use syn::parse::{Parse, ParseStream};
 
-use crate::{clause::{Values, Returning}, keyword, part::TargetTable, quote_option::QuoteOption, visitor::Visitor};
+use crate::{
+    clause::{Returning, Values},
+    keyword,
+    part::TargetTable,
+    quote_option::QuoteOption,
+    visitor::Visitor,
+};
 
 pub struct Insert {
-    pub _insert_keyword: keyword::insert,
-    pub _into_keyword: keyword::into,
+    pub insert_keyword: keyword::insert,
+    pub into_keyword: keyword::into,
     pub target_table: TargetTable,
     pub values: Values,
     pub returning: Option<Returning>,
@@ -29,8 +35,8 @@ impl Insert {
 impl Parse for Insert {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         Ok(Self {
-            _insert_keyword: input.parse()?,
-            _into_keyword: input.parse()?,
+            insert_keyword: input.parse()?,
+            into_keyword: input.parse()?,
             target_table: input.parse()?,
             values: input.parse()?,
             returning: input.call(Returning::parse_optional)?,

@@ -1,10 +1,10 @@
-use std::fmt::Write;
+use std::{fmt::Write, marker::PhantomData};
 
 use crate::Dialect;
 
 pub struct Formatter<'a, D> {
     buf: &'a mut (dyn Write + 'a),
-    _dialect: std::marker::PhantomData<D>,
+    _dialect: PhantomData<D>,
 }
 
 impl<'a, D> Formatter<'a, D>
@@ -14,7 +14,7 @@ where
     pub fn new(buf: &'a mut (dyn Write + 'a)) -> Self {
         Self {
             buf,
-            _dialect: Default::default(),
+            _dialect: PhantomData,
         }
     }
 

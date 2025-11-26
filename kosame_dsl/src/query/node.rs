@@ -34,7 +34,7 @@ impl Node {
             match field {
                 Field::Relation { node, .. } => node.accept(visitor),
                 Field::Expr { expr, .. } => expr.accept(visitor),
-                _ => {}
+                Field::Column { .. } => {}
             }
         }
 
@@ -141,7 +141,7 @@ impl Node {
         &self,
         tokens: &mut TokenStream,
         query: &Query,
-        node_path: QueryNodePath,
+        node_path: &QueryNodePath,
     ) {
         self.scope_id.scope(|| {
             let table_path = node_path.resolve(query.table.as_path());
@@ -173,7 +173,7 @@ impl Node {
                         relation_path.segments.push(PathSegment::from(name.clone()));
 
                         let mut tokens = TokenStream::new();
-                        node.to_query_node_tokens(&mut tokens, query, node_path);
+                        node.to_query_node_tokens(&mut tokens, query, &node_path);
 
                         let relation_path = relation_path.to_call_site(1);
 
@@ -224,7 +224,7 @@ impl Node {
 impl Parse for Node {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         let content;
-        let _brace = braced!(content in input);
+        let brace_token = braced!(content in input);
 
         let star = if content.fork().parse::<Star>().is_ok() {
             let star = Some(content.parse()?);
@@ -274,7 +274,7 @@ impl Parse for Node {
         Ok(Self {
             correlation_id: CorrelationId::new(),
             scope_id: ScopeId::new(),
-            brace_token: _brace,
+            brace_token,
             star,
             fields,
             r#where: content.call(Where::parse_optional)?,

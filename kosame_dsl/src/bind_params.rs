@@ -14,6 +14,12 @@ impl BindParamsBuilder<'_> {
     }
 }
 
+impl Default for BindParamsBuilder<'_> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<'a> BindParamsBuilder<'a> {
     #[must_use]
     pub fn build(self) -> BindParams<'a> {

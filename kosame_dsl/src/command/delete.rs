@@ -71,7 +71,7 @@ impl ToTokens for Delete {
 }
 
 pub struct Using {
-    pub _using_keyword: keyword::using,
+    pub using_keyword: keyword::using,
     pub chain: FromChain,
 }
 
@@ -92,7 +92,7 @@ impl Using {
 impl Parse for Using {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         Ok(Self {
-            _using_keyword: input.parse()?,
+            using_keyword: input.parse()?,
             chain: input.parse()?,
         })
     }

@@ -1,7 +1,7 @@
 macro_rules! unique_macro {
     ($format:literal, $span:expr) => {{
-        let span = $span;
         static AUTO_INCREMENT: std::sync::atomic::AtomicU32 = std::sync::atomic::AtomicU32::new(0);
+        let span = $span;
         let increment = AUTO_INCREMENT.fetch_add(1, Ordering::Relaxed);
         let file = span.file();
         let line_column = span.start();

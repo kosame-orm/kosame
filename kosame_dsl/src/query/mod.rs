@@ -78,7 +78,7 @@ impl ToTokens for Query {
         let query_node = {
             let mut tokens = TokenStream::new();
             self.body
-                .to_query_node_tokens(&mut tokens, self, QueryNodePath::new());
+                .to_query_node_tokens(&mut tokens, self, &QueryNodePath::new());
             tokens
         };
 

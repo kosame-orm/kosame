@@ -2,10 +2,16 @@ use proc_macro2::TokenStream;
 use quote::{ToTokens, quote};
 use syn::parse::{Parse, ParseStream};
 
-use crate::{clause::{Set, From, Where, Returning}, keyword, part::TargetTable, quote_option::QuoteOption, visitor::Visitor};
+use crate::{
+    clause::{From, Returning, Set, Where},
+    keyword,
+    part::TargetTable,
+    quote_option::QuoteOption,
+    visitor::Visitor,
+};
 
 pub struct Update {
-    pub _update_keyword: keyword::update,
+    pub update_keyword: keyword::update,
     pub target_table: TargetTable,
     pub set: Set,
     pub from: Option<From>,
@@ -33,7 +39,7 @@ impl Update {
 impl Parse for Update {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         Ok(Self {
-            _update_keyword: input.call(keyword::update::parse_autocomplete)?,
+            update_keyword: input.call(keyword::update::parse_autocomplete)?,
             target_table: input.parse()?,
             set: input.parse()?,
             from: input.call(From::parse_optional)?,

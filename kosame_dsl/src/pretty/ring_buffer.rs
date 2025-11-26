@@ -11,7 +11,7 @@ pub struct RingBuffer<T> {
 }
 
 impl<T> RingBuffer<T> {
-    #[must_use] 
+    #[must_use]
     pub fn new() -> Self {
         Self {
             inner: VecDeque::new(),
@@ -28,14 +28,20 @@ impl<T> RingBuffer<T> {
         self.inner.pop_front()
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn len(&self) -> usize {
         self.inner.len()
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn is_empty(&self) -> bool {
         self.inner.is_empty()
+    }
+}
+
+impl<T> Default for RingBuffer<T> {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

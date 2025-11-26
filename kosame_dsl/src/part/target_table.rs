@@ -22,12 +22,10 @@ impl TargetTable {
         visitor.visit_table_path(&self.table);
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn name(&self) -> &Ident {
-        self.alias
-            .as_ref()
-            .map(|alias| &alias.ident)
-            .unwrap_or_else(|| {
+        self.alias.as_ref().map_or_else(
+            || {
                 &self
                     .table
                     .as_path()
@@ -35,7 +33,9 @@ impl TargetTable {
                     .last()
                     .expect("path cannot be empty")
                     .ident
-            })
+            },
+            |alias| &alias.ident,
+        )
     }
 }
 

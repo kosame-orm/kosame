@@ -4,7 +4,7 @@ use syn::{
 };
 
 pub struct TypeOverride {
-    pub _colon: Token![:],
+    pub colon_token: Token![:],
     pub type_path: Path,
 }
 
@@ -21,7 +21,7 @@ impl TypeOverride {
 impl Parse for TypeOverride {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         Ok(Self {
-            _colon: input.parse()?,
+            colon_token: input.parse()?,
             type_path: input.parse()?,
         })
     }

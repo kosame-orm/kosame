@@ -7,7 +7,7 @@ use syn::{
 };
 
 pub struct ColumnList {
-    pub _paren_token: syn::token::Paren,
+    pub paren_token: syn::token::Paren,
     pub columns: Punctuated<Ident, Token![,]>,
 }
 
@@ -15,7 +15,7 @@ impl Parse for ColumnList {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         let content;
         Ok(Self {
-            _paren_token: parenthesized!(content in input),
+            paren_token: parenthesized!(content in input),
             columns: content.parse_terminated(Ident::parse, Token![,])?,
         })
     }

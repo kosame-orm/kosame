@@ -10,6 +10,7 @@ use crate::{part::Alias, row::RowField};
 
 pub struct Star {
     pub attrs: Vec<Attribute>,
+    #[allow(clippy::struct_field_names)]
     pub star_token: Token![*],
     pub alias: Option<Alias>,
 }
