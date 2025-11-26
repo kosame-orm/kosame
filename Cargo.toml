@@ -29,6 +29,9 @@ publish = [
     "kosame_sql",
 ]
 
+[workspace.lints.clippy]
+pedantic = "warn"
+
 [workspace.dependencies]
 kosame = { path = "kosame", version = "0.2.0" }
 kosame_dsl = { path = "kosame_dsl", version = "0.2.0" }

@@ -1,4 +1,4 @@
-use super::*;
+use super::{Column, Relation};
 
 pub struct Table<'a> {
     name: &'a str,
@@ -7,6 +7,8 @@ pub struct Table<'a> {
 }
 
 impl<'a> Table<'a> {
+    #[inline]
+    #[must_use]
     pub const fn new(
         name: &'a str,
         columns: &'a [&'a Column],
@@ -20,17 +22,20 @@ impl<'a> Table<'a> {
     }
 
     #[inline]
-    pub const fn name(&self) -> &str {
+    #[must_use]
+    pub const fn name(&self) -> &'a str {
         self.name
     }
 
     #[inline]
-    pub const fn columns(&self) -> &[&Column<'_>] {
+    #[must_use]
+    pub const fn columns(&self) -> &'a [&'a Column<'a>] {
         self.columns
     }
 
     #[inline]
-    pub const fn relations(&self) -> &[&Relation<'_>] {
+    #[must_use]
+    pub const fn relations(&self) -> &'a [&'a Relation<'a>] {
         self.relations
     }
 }

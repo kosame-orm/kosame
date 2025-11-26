@@ -9,6 +9,7 @@ pub struct Unary<'a> {
 
 impl<'a> Unary<'a> {
     #[inline]
+    #[must_use]
     pub const fn new(op: UnaryOp, operand: &'a Expr<'a>) -> Self {
         Self { op, operand }
     }
@@ -45,6 +46,7 @@ pub enum Position {
 
 impl UnaryOp {
     #[inline]
+    #[must_use]
     pub fn position(&self) -> Position {
         match self {
             Self::Not => Position::Prefix,

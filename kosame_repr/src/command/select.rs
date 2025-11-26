@@ -1,6 +1,10 @@
-use crate::{clause, clause::*};
+use crate::{
+    clause,
+    clause::{From, GroupBy, Having, Limit, Offset, OrderBy, Where},
+};
 
 pub struct Select<'a> {
+    #[allow(clippy::struct_field_names)]
     select: clause::Select<'a>,
     from: Option<From<'a>>,
     r#where: Option<Where<'a>>,
@@ -14,6 +18,7 @@ pub struct Select<'a> {
 impl<'a> Select<'a> {
     #[inline]
     #[allow(clippy::too_many_arguments)]
+    #[must_use]
     pub const fn new(
         select: clause::Select<'a>,
         from: Option<From<'a>>,
@@ -37,41 +42,49 @@ impl<'a> Select<'a> {
     }
 
     #[inline]
+    #[must_use]
     pub const fn select(&self) -> &clause::Select<'a> {
         &self.select
     }
 
     #[inline]
+    #[must_use]
     pub const fn from(&self) -> Option<&From<'a>> {
         self.from.as_ref()
     }
 
     #[inline]
+    #[must_use]
     pub const fn r#where(&self) -> Option<&Where<'a>> {
         self.r#where.as_ref()
     }
 
     #[inline]
+    #[must_use]
     pub const fn group_by(&self) -> Option<&GroupBy<'a>> {
         self.group_by.as_ref()
     }
 
     #[inline]
+    #[must_use]
     pub const fn having(&self) -> Option<&Having<'a>> {
         self.having.as_ref()
     }
 
     #[inline]
+    #[must_use]
     pub const fn order_by(&self) -> Option<&OrderBy<'a>> {
         self.order_by.as_ref()
     }
 
     #[inline]
+    #[must_use]
     pub const fn limit(&self) -> Option<&Limit<'a>> {
         self.limit.as_ref()
     }
 
     #[inline]
+    #[must_use]
     pub const fn offset(&self) -> Option<&Offset<'a>> {
         self.offset.as_ref()
     }

@@ -1,4 +1,4 @@
-use super::*;
+use super::Column;
 
 pub struct Relation<'a> {
     name: &'a str,
@@ -9,6 +9,8 @@ pub struct Relation<'a> {
 }
 
 impl<'a> Relation<'a> {
+    #[inline]
+    #[must_use]
     pub const fn new(
         name: &'a str,
         source_table: &'a str,
@@ -26,32 +28,37 @@ impl<'a> Relation<'a> {
     }
 
     #[inline]
-    pub const fn name(&self) -> &str {
+    #[must_use]
+    pub const fn name(&self) -> &'a str {
         self.name
     }
 
     #[inline]
-    pub const fn source_table(&self) -> &str {
+    #[must_use]
+    pub const fn source_table(&self) -> &'a str {
         self.source_table
     }
 
     #[inline]
-    pub const fn source_columns(&self) -> &[&Column<'_>] {
+    #[must_use]
+    pub const fn source_columns(&self) -> &'a [&'a Column<'a>] {
         self.source_columns
     }
 
     #[inline]
-    pub const fn target_table(&self) -> &str {
+    #[must_use]
+    pub const fn target_table(&self) -> &'a str {
         self.target_table
     }
 
     #[inline]
-    pub const fn target_columns(&self) -> &[&Column<'_>] {
+    #[must_use]
+    pub const fn target_columns(&self) -> &'a [&'a Column<'_>] {
         self.target_columns
     }
 
     #[inline]
-    pub fn column_pairs(&self) -> impl Iterator<Item = (&Column<'_>, &Column<'_>)> {
+    pub fn column_pairs(&self) -> impl Iterator<Item = (&'a Column<'a>, &'a Column<'a>)> {
         self.source_columns
             .iter()
             .zip(self.target_columns)

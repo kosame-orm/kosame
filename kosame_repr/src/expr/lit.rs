@@ -15,10 +15,10 @@ impl kosame_sql::FmtSql for Lit {
         formatter: &mut kosame_sql::Formatter<D>,
     ) -> kosame_sql::Result {
         match self {
-            Self::Int(inner) => write!(formatter, "{}", inner),
-            Self::Float(inner) => write!(formatter, "{}", inner),
-            Self::Str(inner) => write!(formatter, "'{}'", inner.replace("'", "''")),
-            Self::Bool(inner) => write!(formatter, "{}", inner),
+            Self::Int(inner) => write!(formatter, "{inner}"),
+            Self::Float(inner) => write!(formatter, "{inner}"),
+            Self::Str(inner) => write!(formatter, "'{}'", inner.replace('\'', "''")),
+            Self::Bool(inner) => write!(formatter, "{inner}"),
             Self::Null => formatter.write_str("null"),
         }
     }

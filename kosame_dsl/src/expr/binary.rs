@@ -20,6 +20,8 @@ pub struct Binary {
 }
 
 impl Binary {
+    #[inline]
+    #[must_use]
     pub fn new(left: Expr, op: BinOp, right: Expr) -> Self {
         Self {
             lhs: Box::new(left),
@@ -33,14 +35,20 @@ impl Binary {
         self.rhs.accept(visitor);
     }
 
+    #[inline]
+    #[must_use]
     pub fn infer_name(&self) -> Option<&Ident> {
         None
     }
 
+    #[inline]
+    #[must_use]
     pub fn infer_type(&self, _scope_id: ScopeId) -> Option<InferredType<'_>> {
         None
     }
 
+    #[inline]
+    #[must_use]
     pub fn span(&self) -> Span {
         self.lhs
             .span()
@@ -106,12 +114,15 @@ impl BinOp {
         input.fork().parse::<BinOp>().ok()
     }
 
+    #[must_use]
     pub fn associativity(&self) -> Associativity {
         Associativity::Left
     }
 
+    #[must_use]
     pub fn precedence(&self) -> u32 {
         // Taken from https://www.postgresql.org/docs/18/sql-syntax-lexical.html#SQL-PRECEDENCE
+        #[allow(clippy::match_same_arms)]
         match self {
             Self::Multiply(_) => 9,
             Self::Divide(_) => 9,
@@ -173,15 +184,13 @@ impl Parse for BinOp {
                 return Ok(Self::Uneq(input.parse()?, input.parse()?));
             } else if input.peek2(Token![=]) {
                 return Ok(Self::LessThanOrEq(input.parse()?, input.parse()?));
-            } else {
-                return Ok(Self::LessThan(input.parse()?));
             }
+            return Ok(Self::LessThan(input.parse()?));
         } else if lookahead.peek(Token![>]) {
             if input.peek2(Token![=]) {
                 return Ok(Self::GreaterThanOrEq(input.parse()?, input.parse()?));
-            } else {
-                return Ok(Self::GreaterThan(input.parse()?));
             }
+            return Ok(Self::GreaterThan(input.parse()?));
         }
 
         Err(lookahead.error())

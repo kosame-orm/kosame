@@ -9,8 +9,8 @@ use syn::{
 use crate::{clause::peek_clause, expr::Expr, keyword, visitor::Visitor};
 
 pub struct OrderBy {
-    pub _order: keyword::order,
-    pub _by: keyword::by,
+    pub order: keyword::order,
+    pub by: keyword::by,
     pub items: Punctuated<OrderByItem, Token![,]>,
 }
 
@@ -33,8 +33,8 @@ impl OrderBy {
 impl Parse for OrderBy {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         Ok(Self {
-            _order: input.call(keyword::order::parse_autocomplete)?,
-            _by: input.call(keyword::by::parse_autocomplete)?,
+            order: input.call(keyword::order::parse_autocomplete)?,
+            by: input.call(keyword::by::parse_autocomplete)?,
             items: {
                 let mut punctuated = Punctuated::new();
                 while !input.is_empty() {
@@ -62,7 +62,7 @@ impl Parse for OrderBy {
 impl ToTokens for OrderBy {
     fn to_tokens(&self, tokens: &mut TokenStream) {
         let items = self.items.iter();
-        quote! { ::kosame::repr::clause::OrderBy::new(&[#(#items),*]) }.to_tokens(tokens)
+        quote! { ::kosame::repr::clause::OrderBy::new(&[#(#items),*]) }.to_tokens(tokens);
     }
 }
 

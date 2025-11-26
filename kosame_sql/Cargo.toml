@@ -10,6 +10,9 @@ readme.workspace = true
 license.workspace = true
 keywords.workspace = true
 
+[lints]
+workspace = true
+
 [features]
 default = []
 

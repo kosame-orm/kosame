@@ -64,10 +64,14 @@ impl<T> DerefMut for ZeroOrOne<T> {
 pub struct Many<T>(Vec<T>);
 
 impl<T> Many<T> {
+    #[inline]
+    #[must_use]
     pub fn new(inner: Vec<T>) -> Self {
         Self(inner)
     }
 
+    #[inline]
+    #[must_use]
     pub fn into_vec(self) -> Vec<T> {
         self.0
     }

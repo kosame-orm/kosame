@@ -27,6 +27,7 @@ pub struct Field {
 }
 
 impl Field {
+    #[must_use]
     pub fn to_row_field(
         &self,
         correlations: &Correlations<'_>,
@@ -61,6 +62,7 @@ impl Field {
         self.expr.accept(visitor);
     }
 
+    #[must_use]
     pub fn infer_name(&self) -> Option<&Ident> {
         self.alias
             .as_ref()
@@ -68,7 +70,8 @@ impl Field {
             .or_else(|| self.expr.infer_name())
     }
 
-    pub fn infer_type<'a>(&'a self, scope_id: ScopeId) -> Option<InferredType<'a>> {
+    #[must_use]
+    pub fn infer_type(&self, scope_id: ScopeId) -> Option<InferredType<'_>> {
         self.type_override
             .as_ref()
             .map(|type_override| InferredType::RustType(&type_override.type_path))
@@ -94,7 +97,7 @@ impl ToTokens for Field {
         quote! {
             ::kosame::repr::clause::Field::new(#expr, #alias)
         }
-        .to_tokens(tokens)
+        .to_tokens(tokens);
     }
 }
 
@@ -111,8 +114,9 @@ impl Fields {
         }
     }
 
+    #[must_use]
     pub fn columns(&self) -> Vec<&Ident> {
-        self.iter().flat_map(|field| field.infer_name()).collect()
+        self.iter().filter_map(|field| field.infer_name()).collect()
     }
 }
 
@@ -145,6 +149,6 @@ impl ToTokens for Fields {
                 #(#fields),*
             ])
         }
-        .to_tokens(tokens)
+        .to_tokens(tokens);
     }
 }

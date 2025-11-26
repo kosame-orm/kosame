@@ -9,6 +9,8 @@ pub struct Row {
 }
 
 impl Row {
+    #[inline]
+    #[must_use]
     pub fn new(attrs: Vec<Attribute>, name: Ident, fields: Vec<RowField>) -> Self {
         Self {
             attrs,
@@ -51,6 +53,8 @@ pub struct RowField {
 }
 
 impl RowField {
+    #[inline]
+    #[must_use]
     pub fn new(attrs: Vec<Attribute>, name: Ident, r#type: TokenStream) -> Self {
         Self {
             attrs,

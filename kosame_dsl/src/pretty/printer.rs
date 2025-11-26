@@ -1,5 +1,3 @@
-use std::ops::Deref;
-
 use super::{Delim, PrettyPrint, RingBuffer, Span, Text, TextMode, Trivia};
 
 pub const MARGIN: usize = 89;
@@ -23,8 +21,7 @@ impl Token {
     fn len(&self) -> usize {
         match self {
             Self::Text(text) => text.len(),
-            Self::Break { len, .. } => *len,
-            Self::Begin { len, .. } => *len,
+            Self::Break { len, .. } | Self::Begin { len, .. } => *len,
             Self::End => 0,
         }
     }
@@ -48,11 +45,12 @@ pub struct Printer<'a> {
 }
 
 impl<'a> Printer<'a> {
+    #[must_use]
     pub fn new(trivia: &'a [Trivia<'a>], initial_space: usize, initial_indent: usize) -> Self {
         Self {
             trivia,
             output: String::new(),
-            space: initial_space.max(MIN_SPACE) as isize,
+            space: initial_space.max(MIN_SPACE).try_into().unwrap(),
             indent: initial_indent,
             tokens: RingBuffer::new(),
             last_break: None,

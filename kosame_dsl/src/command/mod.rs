@@ -44,14 +44,17 @@ impl Command {
         }
     }
 
+    #[must_use]
     pub fn fields(&self) -> Option<&Fields> {
         self.command_type.fields()
     }
 
+    #[must_use]
     pub fn target_table(&self) -> Option<&TargetTable> {
         self.command_type.target_table()
     }
 
+    #[must_use]
     #[allow(clippy::wrong_self_convention)]
     pub fn from_chain(&self) -> Option<&FromChain> {
         self.command_type.from_chain()
@@ -102,6 +105,7 @@ impl CommandType {
         }
     }
 
+    #[must_use]
     pub fn fields(&self) -> Option<&Fields> {
         match self {
             Self::Delete(inner) => inner.returning.as_ref().map(|returning| &returning.fields),
@@ -111,6 +115,7 @@ impl CommandType {
         }
     }
 
+    #[must_use]
     pub fn target_table(&self) -> Option<&TargetTable> {
         match self {
             Self::Delete(delete) => Some(&delete.target_table),
@@ -120,6 +125,7 @@ impl CommandType {
         }
     }
 
+    #[must_use]
     #[allow(clippy::wrong_self_convention)]
     pub fn from_chain(&self) -> Option<&FromChain> {
         match self {

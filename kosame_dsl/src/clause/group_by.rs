@@ -9,8 +9,8 @@ use syn::{
 use crate::{clause::peek_clause, expr::Expr, keyword, visitor::Visitor};
 
 pub struct GroupBy {
-    pub _group: keyword::group,
-    pub _by: keyword::by,
+    pub group: keyword::group,
+    pub by: keyword::by,
     pub items: Punctuated<GroupByItem, Token![,]>,
 }
 
@@ -33,8 +33,8 @@ impl GroupBy {
 impl Parse for GroupBy {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         Ok(Self {
-            _group: input.call(keyword::group::parse_autocomplete)?,
-            _by: input.call(keyword::by::parse_autocomplete)?,
+            group: input.call(keyword::group::parse_autocomplete)?,
+            by: input.call(keyword::by::parse_autocomplete)?,
             items: {
                 let mut punctuated = Punctuated::new();
                 while !input.is_empty() {
@@ -62,7 +62,7 @@ impl Parse for GroupBy {
 impl ToTokens for GroupBy {
     fn to_tokens(&self, tokens: &mut TokenStream) {
         let items = self.items.iter();
-        quote! { ::kosame::repr::clause::GroupBy::new(&[#(#items),*]) }.to_tokens(tokens)
+        quote! { ::kosame::repr::clause::GroupBy::new(&[#(#items),*]) }.to_tokens(tokens);
     }
 }
 

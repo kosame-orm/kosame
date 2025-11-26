@@ -6,6 +6,7 @@ pub struct Raw<'a> {
 
 impl<'a> Raw<'a> {
     #[inline]
+    #[must_use]
     pub const fn new(string: &'a str) -> Self {
         Self { string }
     }

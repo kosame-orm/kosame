@@ -7,16 +7,19 @@ pub struct TargetTable<'a> {
 
 impl<'a> TargetTable<'a> {
     #[inline]
+    #[must_use]
     pub const fn new(table: &'a str, alias: Option<&'a str>) -> Self {
         Self { table, alias }
     }
 
     #[inline]
+    #[must_use]
     pub const fn table(&self) -> &'a str {
         self.table
     }
 
     #[inline]
+    #[must_use]
     pub const fn alias(&self) -> Option<&'a str> {
         self.alias
     }

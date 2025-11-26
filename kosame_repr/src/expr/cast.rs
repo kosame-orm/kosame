@@ -9,6 +9,7 @@ pub struct Cast<'a> {
 
 impl<'a> Cast<'a> {
     #[inline]
+    #[must_use]
     pub const fn new(value: &'a Expr, data_type: &'a str) -> Self {
         Self { value, data_type }
     }

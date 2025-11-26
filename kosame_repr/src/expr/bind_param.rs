@@ -5,6 +5,7 @@ pub struct BindParam<'a> {
 
 impl<'a> BindParam<'a> {
     #[inline]
+    #[must_use]
     pub const fn new(name: &'a str, ordinal: u32) -> Self {
         Self { name, ordinal }
     }

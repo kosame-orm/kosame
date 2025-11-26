@@ -9,7 +9,7 @@ use syn::{
 use crate::{expr::Expr, keyword, visitor::Visitor};
 
 pub struct Values {
-    pub _values_keyword: keyword::values,
+    pub values_keyword: keyword::values,
     pub rows: Punctuated<ValuesRow, Token![,]>,
 }
 
@@ -28,7 +28,7 @@ impl Values {
 impl Parse for Values {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         Ok(Self {
-            _values_keyword: input.parse()?,
+            values_keyword: input.parse()?,
             rows: {
                 let mut punctuated = Punctuated::new();
                 while input.peek(syn::token::Paren) {

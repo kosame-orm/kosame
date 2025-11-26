@@ -5,7 +5,7 @@ use syn::parse::{Parse, ParseStream};
 use crate::{expr::Expr, keyword, visitor::Visitor};
 
 pub struct Limit {
-    pub _limit: keyword::limit,
+    pub limit: keyword::limit,
     pub expr: Expr,
 }
 
@@ -26,7 +26,7 @@ impl Limit {
 impl Parse for Limit {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         Ok(Self {
-            _limit: input.parse()?,
+            limit: input.parse()?,
             expr: input.parse()?,
         })
     }

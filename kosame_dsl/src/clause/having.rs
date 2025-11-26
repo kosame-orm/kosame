@@ -5,7 +5,7 @@ use syn::parse::{Parse, ParseStream};
 use crate::{expr::Expr, keyword, visitor::Visitor};
 
 pub struct Having {
-    pub _having: keyword::having,
+    pub having: keyword::having,
     pub expr: Expr,
 }
 
@@ -26,7 +26,7 @@ impl Having {
 impl Parse for Having {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         Ok(Self {
-            _having: input.parse()?,
+            having: input.parse()?,
             expr: input.parse()?,
         })
     }

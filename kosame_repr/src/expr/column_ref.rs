@@ -7,6 +7,7 @@ pub struct ColumnRef<'a> {
 
 impl<'a> ColumnRef<'a> {
     #[inline]
+    #[must_use]
     pub const fn new(correlation: Option<&'a str>, column: &'a str) -> Self {
         Self {
             correlation,

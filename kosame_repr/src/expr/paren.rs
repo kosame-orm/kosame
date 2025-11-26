@@ -8,6 +8,7 @@ pub struct Paren<'a> {
 
 impl<'a> Paren<'a> {
     #[inline]
+    #[must_use]
     pub const fn new(expr: &'a Expr) -> Self {
         Self { expr }
     }

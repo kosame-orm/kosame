@@ -57,7 +57,7 @@ pub fn derive_row(tokens: proc_macro::TokenStream) -> proc_macro::TokenStream {
 
     #[cfg(any(feature = "postgres", feature = "tokio-postgres"))]
     {
-        let field_count = data.fields.len() as i32;
+        let field_count: i32 = data.fields.len().try_into().unwrap();
         let fields = data.fields.iter().map(|field| {
             let name = &field.ident;
             quote! {

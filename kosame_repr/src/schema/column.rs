@@ -10,27 +10,32 @@ pub struct Column<'a> {
 
 impl<'a> Column<'a> {
     #[inline]
-    pub const fn name(&self) -> &str {
+    #[must_use]
+    pub const fn name(&self) -> &'a str {
         self.name
     }
 
     #[inline]
-    pub const fn data_type(&self) -> &str {
+    #[must_use]
+    pub const fn data_type(&self) -> &'a str {
         self.data_type
     }
 
     #[inline]
+    #[must_use]
     pub const fn primary_key(&self) -> bool {
         self.primary_key
     }
 
     #[inline]
+    #[must_use]
     pub const fn not_null(&self) -> bool {
         self.not_null
     }
 
     #[inline]
-    pub const fn default(&self) -> Option<&Expr<'_>> {
+    #[must_use]
+    pub const fn default(&self) -> Option<&'a Expr<'_>> {
         self.default
     }
 }

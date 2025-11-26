@@ -1,6 +1,9 @@
 use std::fmt::Write;
 
-use crate::{clause::*, part::TargetTable};
+use crate::{
+    clause::{From, Returning, Set, Where},
+    part::TargetTable,
+};
 
 pub struct Update<'a> {
     target_table: TargetTable<'a>,
@@ -12,6 +15,7 @@ pub struct Update<'a> {
 
 impl<'a> Update<'a> {
     #[inline]
+    #[must_use]
     pub const fn new(
         target_table: TargetTable<'a>,
         set: Set<'a>,
@@ -29,26 +33,31 @@ impl<'a> Update<'a> {
     }
 
     #[inline]
+    #[must_use]
     pub const fn target_table(&self) -> &TargetTable<'a> {
         &self.target_table
     }
 
     #[inline]
+    #[must_use]
     pub const fn set(&self) -> &Set<'a> {
         &self.set
     }
 
     #[inline]
+    #[must_use]
     pub const fn from(&self) -> Option<&From<'a>> {
         self.from.as_ref()
     }
 
     #[inline]
+    #[must_use]
     pub const fn r#where(&self) -> Option<&Where<'a>> {
         self.r#where.as_ref()
     }
 
     #[inline]
+    #[must_use]
     pub const fn returning(&self) -> Option<&Returning<'a>> {
         self.returning.as_ref()
     }

@@ -22,6 +22,7 @@ thread_local! {
 pub struct ScopeId(u32);
 
 impl ScopeId {
+    #[must_use]
     pub fn new() -> Self {
         let id = SCOPE_ID_AUTO_INCREMENT.get();
         SCOPE_ID_AUTO_INCREMENT.set(id + 1);
@@ -34,6 +35,7 @@ impl ScopeId {
         SCOPE_ID_CONTEXT.with(|cell| cell.replace(previous));
     }
 
+    #[must_use]
     pub fn of_scope() -> ScopeId {
         SCOPE_ID_CONTEXT
             .get()
@@ -41,7 +43,7 @@ impl ScopeId {
     }
 
     pub fn reset() {
-        SCOPE_ID_AUTO_INCREMENT.set(0)
+        SCOPE_ID_AUTO_INCREMENT.set(0);
     }
 }
 

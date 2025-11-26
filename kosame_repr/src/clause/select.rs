@@ -8,11 +8,13 @@ pub struct Select<'a> {
 
 impl<'a> Select<'a> {
     #[inline]
+    #[must_use]
     pub const fn new(fields: Fields<'a>) -> Self {
         Self { fields }
     }
 
     #[inline]
+    #[must_use]
     pub const fn fields(&self) -> &Fields<'a> {
         &self.fields
     }

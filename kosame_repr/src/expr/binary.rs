@@ -10,6 +10,7 @@ pub struct Binary<'a> {
 
 impl<'a> Binary<'a> {
     #[inline]
+    #[must_use]
     pub const fn new(left: &'a Expr<'a>, op: BinOp, right: &'a Expr<'a>) -> Self {
         Self { left, op, right }
     }

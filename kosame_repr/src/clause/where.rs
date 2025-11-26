@@ -8,11 +8,13 @@ pub struct Where<'a> {
 
 impl<'a> Where<'a> {
     #[inline]
+    #[must_use]
     pub const fn new(expr: Expr<'a>) -> Self {
         Self { expr }
     }
 
     #[inline]
+    #[must_use]
     pub const fn expr(&self) -> &Expr<'_> {
         &self.expr
     }
