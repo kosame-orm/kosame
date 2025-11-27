@@ -11,7 +11,7 @@ use crate::{
     data_type::DataType,
     inferred_type::InferredType,
     keyword,
-    pretty::{BreakMode, PrettyPrint, Printer},
+    pretty::{BreakMode, Delim, PrettyPrint, Printer},
     scopes::ScopeId,
 };
 
@@ -34,12 +34,12 @@ impl Cast {
         self.value.accept(visitor);
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn infer_name(&self) -> Option<&Ident> {
         self.value.infer_name()
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn infer_type(&self, _scope_id: ScopeId) -> Option<InferredType<'_>> {
         // Difficulty detecting nullability
         // Some(InferredType::DataType(self.data_type.clone()))
@@ -47,7 +47,7 @@ impl Cast {
         None
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn span(&self) -> Span {
         self.cast_kw
             .span
@@ -83,12 +83,13 @@ impl ToTokens for Cast {
 impl PrettyPrint for Cast {
     fn pretty_print(&self, printer: &mut Printer) {
         self.cast_kw.pretty_print(printer);
-        printer.scan_begin(Some((&self.paren).into()), BreakMode::Inconsistent);
-        self.value.pretty_print(printer);
-        printer.scan_break(true);
-        self.as_token.pretty_print(printer);
-        printer.scan_text(" ");
-        self.data_type.pretty_print(printer);
-        printer.scan_end(Some((&self.paren).into()));
+        self.paren
+            .pretty_print(printer, BreakMode::Inconsistent, |printer| {
+                self.value.pretty_print(printer);
+                printer.scan_break(true);
+                self.as_token.pretty_print(printer);
+                printer.scan_text(" ");
+                self.data_type.pretty_print(printer);
+            });
     }
 }

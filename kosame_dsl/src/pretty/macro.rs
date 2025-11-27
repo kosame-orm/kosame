@@ -3,7 +3,7 @@ use syn::{
     parse::{Parse, ParseStream},
 };
 
-use crate::pretty::{BreakMode, PrettyPrint, Printer, Text};
+use crate::pretty::{BreakMode, Delim, PrettyPrint, Printer, Text};
 
 pub enum Macro<T> {
     Parenthesized {
@@ -55,21 +55,21 @@ where
     fn pretty_print(&self, printer: &mut Printer<'_>) {
         match self {
             Self::Parenthesized { paren, inner } => {
-                printer.scan_begin(Some(paren.into()), BreakMode::Consistent);
-                inner.pretty_print(printer);
-                printer.scan_end(Some(paren.into()));
+                paren.pretty_print(printer, BreakMode::Consistent, |printer| {
+                    inner.pretty_print(printer);
+                });
             }
             Self::Braced { brace, inner } => {
-                printer.scan_begin(Some(brace.into()), BreakMode::Consistent);
-                printer.scan_text(Text::new(" ", None, super::TextMode::NoBreak));
-                inner.pretty_print(printer);
-                printer.scan_text(Text::new(" ", None, super::TextMode::NoBreak));
-                printer.scan_end(Some(brace.into()));
+                brace.pretty_print(printer, BreakMode::Consistent, |printer| {
+                    printer.scan_text(Text::new(" ", None, super::TextMode::NoBreak));
+                    inner.pretty_print(printer);
+                    printer.scan_text(Text::new(" ", None, super::TextMode::NoBreak));
+                });
             }
             Self::Bracketed { bracket, inner } => {
-                printer.scan_begin(Some(bracket.into()), BreakMode::Consistent);
-                inner.pretty_print(printer);
-                printer.scan_end(Some(bracket.into()));
+                bracket.pretty_print(printer, BreakMode::Consistent, |printer| {
+                    inner.pretty_print(printer);
+                });
             }
         }
     }

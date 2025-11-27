@@ -62,7 +62,11 @@ impl ToTokens for Column {
 
         let data_type = &self.data_type;
         let data_type_string = data_type.name.to_string();
-        let rust_type_not_null = if let Some(type_override) = meta.type_override { type_override.value.to_call_site(3).to_token_stream() } else { quote! { #data_type } };
+        let rust_type_not_null = if let Some(type_override) = meta.type_override {
+            type_override.value.to_call_site(3).to_token_stream()
+        } else {
+            quote! { #data_type }
+        };
         let rust_type_nullable = quote! { Option<#data_type> };
         let rust_type_auto =
             if self.constraints.not_null().is_none() && self.constraints.primary_key().is_none() {
@@ -103,11 +107,11 @@ impl PrettyPrint for Column {
             attr.pretty_print(printer);
         }
         printer.flush_trivia(self.name.span().into());
-        printer.scan_begin(None, BreakMode::Inconsistent);
+        printer.scan_begin(BreakMode::Inconsistent);
         self.name.pretty_print(printer);
         printer.scan_break(true);
         self.data_type.pretty_print(printer);
         self.constraints.pretty_print(printer);
-        printer.scan_end(None);
+        printer.scan_end();
     }
 }

@@ -1,4 +1,4 @@
-use super::{Delim, PrettyPrint, RingBuffer, Span, Text, TextMode, Trivia};
+use super::{PrettyPrint, RingBuffer, Span, Text, TextMode, Trivia};
 
 pub const MARGIN: isize = 89;
 pub const INDENT: isize = 4;
@@ -108,10 +108,7 @@ impl<'a> Printer<'a> {
         self.push_len(len);
     }
 
-    pub fn scan_begin(&mut self, delim: Option<Delim<'_>>, mode: BreakMode) {
-        if let Some(delim) = delim {
-            self.scan_text(delim.open_text());
-        }
+    pub fn scan_begin(&mut self, mode: BreakMode) {
         self.begin_stack.push(self.tokens.len());
         self.tokens.push_back(Token::Begin { mode, len: 0 });
     }
@@ -119,14 +116,7 @@ impl<'a> Printer<'a> {
     /// # Panics
     ///
     /// Panics if there was no matching call to [`scan_begin`] prior to running this function.
-    pub fn scan_end(&mut self, delim: Option<Delim<'_>>) {
-        // Flush any trivia that appears before this token
-        if let Some(delim) = delim.as_ref()
-            && let Some(span) = delim.close_text().span()
-        {
-            self.flush_trivia(span);
-        }
-
+    pub fn scan_end(&mut self) {
         let begin_index = self
             .begin_stack
             .pop()
@@ -143,10 +133,6 @@ impl<'a> Printer<'a> {
 
         self.last_break = None;
         self.tokens.push_back(Token::End);
-
-        if let Some(delim) = delim {
-            self.scan_text(delim.close_text());
-        }
     }
 
     fn print_break(&mut self) {

@@ -1,62 +1,71 @@
-use crate::pretty::{Span, Text, TextMode};
+use proc_macro2::extra::DelimSpan;
 
-pub enum Delim<'a> {
-    Paren(&'a syn::token::Paren),
-    Brace(&'a syn::token::Brace),
-    Bracket(&'a syn::token::Bracket),
-}
+use crate::pretty::{BreakMode, Printer};
 
-impl Delim<'_> {
-    #[must_use]
-    pub fn span(&self) -> (Span, Span) {
-        match self {
-            Self::Paren(inner) => (inner.span.open().into(), inner.span.close().into()),
-            Self::Brace(inner) => (inner.span.open().into(), inner.span.close().into()),
-            Self::Bracket(inner) => (inner.span.open().into(), inner.span.close().into()),
-        }
+pub trait Delim {
+    fn pretty_print(
+        &self,
+        printer: &mut Printer<'_>,
+        break_mode: BreakMode,
+        f: impl FnOnce(&mut Printer<'_>),
+    ) {
+        printer.flush_trivia(self.span().open().into());
+        printer.scan_text(self.open_text());
+        printer.scan_begin(break_mode);
+        f(printer);
+        printer.flush_trivia(self.span().close().into());
+        printer.scan_end();
+        printer.scan_text(self.close_text());
     }
 
     #[must_use]
-    pub fn open_text(&self) -> Text {
-        Text::new(
-            match self {
-                Self::Paren(..) => "(",
-                Self::Brace(..) => "{",
-                Self::Bracket(..) => "[",
-            },
-            Some(self.span().0),
-            TextMode::Always,
-        )
-    }
+    fn open_text(&self) -> &'static str;
 
     #[must_use]
-    pub fn close_text(&self) -> Text {
-        Text::new(
-            match self {
-                Self::Paren(..) => ")",
-                Self::Brace(..) => "}",
-                Self::Bracket(..) => "]",
-            },
-            Some(self.span().1),
-            TextMode::Always,
-        )
+    fn close_text(&self) -> &'static str;
+
+    #[must_use]
+    fn span(&self) -> DelimSpan;
+}
+
+impl Delim for syn::token::Paren {
+    fn open_text(&self) -> &'static str {
+        "("
+    }
+
+    fn close_text(&self) -> &'static str {
+        ")"
+    }
+
+    fn span(&self) -> DelimSpan {
+        self.span
     }
 }
 
-impl<'a> From<&'a syn::token::Bracket> for Delim<'a> {
-    fn from(v: &'a syn::token::Bracket) -> Self {
-        Self::Bracket(v)
+impl Delim for syn::token::Bracket {
+    fn open_text(&self) -> &'static str {
+        "["
+    }
+
+    fn close_text(&self) -> &'static str {
+        "]"
+    }
+
+    fn span(&self) -> DelimSpan {
+        self.span
     }
 }
 
-impl<'a> From<&'a syn::token::Brace> for Delim<'a> {
-    fn from(v: &'a syn::token::Brace) -> Self {
-        Self::Brace(v)
+impl Delim for syn::token::Brace {
+    fn open_text(&self) -> &'static str {
+        "{"
     }
-}
 
-impl<'a> From<&'a syn::token::Paren> for Delim<'a> {
-    fn from(v: &'a syn::token::Paren) -> Self {
-        Self::Paren(v)
+    fn close_text(&self) -> &'static str {
+        "}"
+    }
+
+    fn span(&self) -> DelimSpan {
+        self.span
     }
 }

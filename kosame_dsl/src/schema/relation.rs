@@ -10,7 +10,7 @@ use syn::{
 
 use crate::{
     path_ext::PathExt,
-    pretty::{BreakMode, PrettyPrint, Printer},
+    pretty::{BreakMode, Delim, PrettyPrint, Printer},
 };
 
 pub struct Relation {
@@ -104,17 +104,19 @@ impl PrettyPrint for Relation {
         printer.scan_text(&self.colon);
         printer.scan_text(" ");
 
-        printer.scan_begin(Some((&self.source_paren).into()), BreakMode::Consistent);
-        self.source_columns.pretty_print(printer);
-        printer.scan_end(Some((&self.source_paren).into()));
+        self.source_paren
+            .pretty_print(printer, BreakMode::Consistent, |printer| {
+                self.source_columns.pretty_print(printer);
+            });
 
         printer.scan_text(" ");
         self.arrow.pretty_print(printer);
         printer.scan_text(" ");
 
-        printer.scan_begin(Some((&self.target_paren).into()), BreakMode::Consistent);
-        self.target_columns.pretty_print(printer);
-        printer.scan_end(Some((&self.target_paren).into()));
+        self.target_paren
+            .pretty_print(printer, BreakMode::Consistent, |printer| {
+                self.target_columns.pretty_print(printer);
+            });
     }
 }
 

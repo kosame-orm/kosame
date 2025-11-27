@@ -1,7 +1,5 @@
 use crate::inferred_type::InferredType;
-use crate::pretty::BreakMode;
-use crate::pretty::PrettyPrint;
-use crate::pretty::Printer;
+use crate::pretty::{BreakMode, Delim, PrettyPrint, Printer};
 use crate::scopes::ScopeId;
 
 use super::Expr;
@@ -23,17 +21,17 @@ pub struct Paren {
 impl Paren {
     pub fn accept<'a>(&'a self, _visitor: &mut impl Visitor<'a>) {}
 
-    #[must_use] 
+    #[must_use]
     pub fn span(&self) -> Span {
         self.paren.span.span()
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn infer_name(&self) -> Option<&Ident> {
         self.expr.infer_name()
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn infer_type(&self, scope_id: ScopeId) -> Option<InferredType<'_>> {
         self.expr.infer_type(scope_id)
     }
@@ -61,8 +59,9 @@ impl ToTokens for Paren {
 
 impl PrettyPrint for Paren {
     fn pretty_print(&self, printer: &mut Printer) {
-        printer.scan_begin(Some((&self.paren).into()), BreakMode::Inconsistent);
-        self.expr.pretty_print(printer);
-        printer.scan_end(Some((&self.paren).into()));
+        self.paren
+            .pretty_print(printer, BreakMode::Inconsistent, |printer| {
+                self.expr.pretty_print(printer);
+            });
     }
 }
