@@ -4,14 +4,14 @@ use super::Expr;
 
 pub struct Call<'a> {
     function: &'a str,
-    params: &'a [&'a Expr<'a>],
+    params: &'a [Expr<'a>],
     keyword: bool,
 }
 
 impl<'a> Call<'a> {
     #[inline]
-    #[must_use] 
-    pub const fn new(function: &'a str, params: &'a [&'a Expr], keyword: bool) -> Self {
+    #[must_use]
+    pub const fn new(function: &'a str, params: &'a [Expr], keyword: bool) -> Self {
         Self {
             function,
             params,

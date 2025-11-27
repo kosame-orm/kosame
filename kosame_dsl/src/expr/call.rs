@@ -25,12 +25,12 @@ impl Call {
         input.peek(Ident) && input.peek2(syn::token::Paren)
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn infer_name(&self) -> Option<&Ident> {
         Some(&self.function)
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn infer_type(&self, _scope_id: ScopeId) -> Option<InferredType<'_>> {
         None
     }
@@ -41,7 +41,7 @@ impl Call {
         }
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn span(&self) -> Span {
         self.function
             .span()
@@ -76,7 +76,7 @@ impl ToTokens for Call {
         quote! {
             ::kosame::repr::expr::Call::new(
                 #function_name,
-                &[#(&#params),*],
+                &[#(#params),*],
                 #keyword,
             )
         }

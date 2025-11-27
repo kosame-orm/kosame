@@ -18,18 +18,6 @@ pub trait FmtSql {
     }
 }
 
-impl<T> FmtSql for &T
-where
-    T: FmtSql,
-{
-    fn fmt_sql<D>(&self, formatter: &mut Formatter<D>) -> crate::Result
-    where
-        D: Dialect,
-    {
-        (*self).fmt_sql(formatter)
-    }
-}
-
 impl FmtSql for &str {
     fn fmt_sql<D>(&self, formatter: &mut Formatter<D>) -> crate::Result
     where
