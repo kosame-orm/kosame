@@ -25,10 +25,11 @@ macro_rules! custom_keyword {
 
         impl crate::pretty::PrettyPrint for $kw {
             fn pretty_print(&self, printer: &mut crate::pretty::Printer<'_>) {
+                printer.flush_trivia(self.span.into());
                 printer.scan_text(
                     self.to_token_stream().to_string().into(),
                     crate::pretty::TextMode::Always,
-                )
+                );
             }
         }
     };
