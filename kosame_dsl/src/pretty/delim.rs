@@ -9,7 +9,8 @@ pub trait Delim {
         break_mode: Option<BreakMode>,
         f: impl FnOnce(&mut Printer<'_>),
     ) {
-        printer.flush_trivia(self.span().open().into());
+        printer.move_cursor(self.span().open().start());
+        printer.flush_trivia();
         self.open_text().pretty_print(printer);
         printer.scan_indent(1);
         if let Some(break_mode) = break_mode {
@@ -17,7 +18,8 @@ pub trait Delim {
         }
         printer.scan_break(false);
         f(printer);
-        printer.flush_trivia(self.span().close().into());
+        printer.move_cursor(self.span().close().start());
+        printer.flush_trivia();
         printer.scan_break(false);
         if break_mode.is_some() {
             printer.scan_end();

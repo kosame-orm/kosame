@@ -106,7 +106,8 @@ impl PrettyPrint for Column {
         for attr in &self.attrs {
             attr.pretty_print(printer);
         }
-        printer.flush_trivia(self.name.span().into());
+        printer.move_cursor(self.name.span().start());
+        printer.flush_trivia();
         printer.scan_begin(BreakMode::Inconsistent);
         self.name.pretty_print(printer);
         printer.scan_break(false);

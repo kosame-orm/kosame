@@ -24,7 +24,8 @@ impl PrettyPrint for syn::Attribute {
 
 impl PrettyPrint for syn::token::PathSep {
     fn pretty_print(&self, printer: &mut Printer<'_>) {
-        printer.flush_trivia(self.span().into());
+        printer.move_cursor(self.span().start());
+        printer.flush_trivia();
         printer.scan_text("::".into(), TextMode::Always);
         printer.move_cursor(self.span().end());
     }
@@ -79,7 +80,8 @@ impl PrettyPrint for syn::AngleBracketedGenericArguments {
 impl PrettyPrint for syn::GenericArgument {
     fn pretty_print(&self, printer: &mut Printer<'_>) {
         // Use to_token_stream for generic arguments
-        printer.flush_trivia(self.span().into());
+        printer.move_cursor(self.span().start());
+        printer.flush_trivia();
         printer.scan_text(self.to_token_stream().to_string().into(), TextMode::Always);
         printer.move_cursor(self.span().end());
     }
@@ -118,7 +120,8 @@ impl PrettyPrint for syn::ParenthesizedGenericArguments {
 impl PrettyPrint for syn::Type {
     fn pretty_print(&self, printer: &mut Printer<'_>) {
         // Use to_token_stream for types
-        printer.flush_trivia(self.span().into());
+        printer.move_cursor(self.span().start());
+        printer.flush_trivia();
         printer.scan_text(self.to_token_stream().to_string().into(), TextMode::Always);
         printer.move_cursor(self.span().end());
     }
@@ -126,7 +129,8 @@ impl PrettyPrint for syn::Type {
 
 impl PrettyPrint for syn::token::RArrow {
     fn pretty_print(&self, printer: &mut Printer<'_>) {
-        printer.flush_trivia(self.span().into());
+        printer.move_cursor(self.span().start());
+        printer.flush_trivia();
         printer.scan_text("->".into(), TextMode::Always);
         printer.move_cursor(self.span().end());
     }

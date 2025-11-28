@@ -280,8 +280,7 @@ impl<'a> Printer<'a> {
     /// Flushes all trivia that appears before the given token span.
     /// This should be called before structural operations like `scan_begin` to ensure
     /// comments appear in the right place.
-    pub fn flush_trivia(&mut self, token_span: Span) {
-        self.cursor = token_span.start();
+    pub fn flush_trivia(&mut self) {
         while let Some(trivia) = self.ready_trivia() {
             match trivia.kind {
                 TriviaKind::BlockComment => {
