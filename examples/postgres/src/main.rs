@@ -4,32 +4,56 @@ use kosame::prelude::*;
 mod schema {
     use kosame::pg_table;
 
-    pg_table! {
-        create table mflasdf (
-        );
-    }
-    pg_table!(
-        create table pip (
-        );
-    );
+    pg_table! { create table mflasdf (); }
+    pg_table!(create table pip (););
 
     pg_table! {
         // Kosame uses the familiar SQL syntax to declare tables.
-        create table lel (
-            id int primary key,
-        );
+        create table lel (id int primary key);
     }
 
-    pg_table! {
-        // Kosame uses the familiar SQL syntax to declare tables.
-        create table kek (
-            id int primary key not null not null not null not/*kek*/null not null not null not null not null not null not null not null not null not null not null not null not null not
-            //pip
-            null not null not null not null default (3 + 4 + (5+ 6 + 8 + 9 + 10 + now(5))),
-        );
-
-        pip: (kek, schnebul, kek,kek,kek,kek,schnebul,kek,kek,kek,kek,kek,kek,kek,            ) => mflasdf (lel, lel, le, le, le, le, le, le, le, le, le, le, le, lelllllllllll),
-    }
+    // pg_table! {
+    //     // Kosame uses the familiar SQL syntax to declare tables.
+    //     create table kek (
+    //         id int primary key not null not null not null not /*kek*/ null not null
+    //             not null not null not null not null not null not null not null not null
+    //             not null not null not null not //pip
+    //             null not null not null not null default (3 + 4 + (5 + 6 + 8 + 9 + 10
+    //                     + now(5))),
+    //     );
+    //
+    //     pip: (
+    //         kek,
+    //         schnebul,
+    //         kek,
+    //         kek,
+    //         kek,
+    //         kek,
+    //         schnebul,
+    //         kek,
+    //         kek,
+    //         kek,
+    //         kek,
+    //         kek,
+    //         kek,
+    //         kek,
+    //     ) => mflasdf (
+    //         lel,
+    //         lel,
+    //         le,
+    //         le,
+    //         le,
+    //         le,
+    //         le,
+    //         le,
+    //         le,
+    //         le,
+    //         le,
+    //         le,
+    //         le,
+    //         lelllllllllll,
+    //     ),
+    // }
 
     pg_table! {
         // Kosame uses the familiar SQL syntax to declare tables.
@@ -42,7 +66,6 @@ mod schema {
             // rename them or specify a different type if you prefer.
             #[kosame(rename = renamed_title, ty = ::std::string::String)]
             title text not null,
-
             content text, // Trailing commas are allowed.
         );
 
@@ -59,8 +82,8 @@ mod schema {
         );
 
         // You may also define the inverse relation if you need it.
-        post: (post_id) => posts (id),
-        //pip
+        post: (post_id) => posts (id),//pip
+
     }
 
     // The `kosame::pg_table!` macro is a shorthand for `kosame::table!` with the driver

@@ -112,6 +112,8 @@ impl PrettyPrint for Relation {
         " ".pretty_print(printer);
         self.arrow.pretty_print(printer);
         " ".pretty_print(printer);
+        self.target_table.pretty_print(printer);
+        " ".pretty_print(printer);
 
         self.target_paren
             .pretty_print(printer, Some(BreakMode::Consistent), |printer| {

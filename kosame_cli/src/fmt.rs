@@ -1,7 +1,7 @@
 use std::io::Read;
 
 use clap::Args;
-use kosame_dsl::pretty::{MARGIN, pretty_print_macro_str};
+use kosame_dsl::pretty::{MARGIN, Macro, pretty_print_macro_str};
 use syn::spanned::Spanned;
 
 #[derive(Args)]
@@ -55,15 +55,14 @@ impl Fmt {
                 let initial_space = MARGIN - isize::try_from(span.start().column).unwrap();
                 let initial_indent = self.indent;
 
-                let result =
-                    match name.to_string().as_ref() {
-                        "table" | "pg_table" => Some(pretty_print_macro_str::<
-                            kosame_dsl::schema::Table,
-                        >(
-                            &source_text, initial_space, initial_indent
-                        )),
-                        _ => None,
-                    };
+                let result = match name.to_string().as_ref() {
+                    "table" | "pg_table" => Some(pretty_print_macro_str::<
+                        Macro<kosame_dsl::schema::Table>,
+                    >(
+                        &source_text, initial_space, initial_indent
+                    )),
+                    _ => None,
+                };
 
                 match result {
                     Some(Ok(replacement)) => self.replacements.push(Replace {

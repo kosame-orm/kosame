@@ -24,7 +24,7 @@ pub fn pretty_print_macro_str<T>(
 where
     T: Parse + PrettyPrint,
 {
-    let ast: Macro<T> = syn::parse_str(source_text)?;
+    let ast: T = syn::parse_str(source_text)?;
     let trivia = Lexer::new(source_text).collect::<Vec<_>>();
 
     let mut printer = Printer::new(&trivia, initial_space, initial_indent);

@@ -202,6 +202,9 @@ impl PrettyPrint for Table {
         " ".pretty_print(printer);
         self.table_kw.pretty_print(printer);
         " ".pretty_print(printer);
+        self.name.pretty_print(printer);
+        " ".pretty_print(printer);
+
         self.paren
             .pretty_print(printer, Some(BreakMode::Consistent), |printer| {
                 self.columns.pretty_print(printer);
