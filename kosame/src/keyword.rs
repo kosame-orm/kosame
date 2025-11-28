@@ -16,6 +16,7 @@ macro_rules! keyword_group {
     };
 }
 
+custom_keyword!(all);
 custom_keyword!(and);
 custom_keyword!(asc);
 custom_keyword!(by);
@@ -27,6 +28,7 @@ custom_keyword!(delete);
 custom_keyword!(desc);
 custom_keyword!(distinct);
 custom_keyword!(driver);
+custom_keyword!(except);
 custom_keyword!(first);
 custom_keyword!(from);
 custom_keyword!(full);
@@ -34,6 +36,7 @@ custom_keyword!(group);
 custom_keyword!(having);
 custom_keyword!(inner);
 custom_keyword!(insert);
+custom_keyword!(intersect);
 custom_keyword!(into);
 custom_keyword!(is);
 custom_keyword!(join);
@@ -62,6 +65,7 @@ custom_keyword!(set);
 custom_keyword!(__table);
 custom_keyword!(table);
 custom_keyword!(ty);
+custom_keyword!(union);
 custom_keyword!(update);
 custom_keyword!(using);
 custom_keyword!(values);
