@@ -166,19 +166,20 @@ impl<'a> Printer<'a> {
         }
     }
 
-    fn scan_trivia(&mut self) {
+    pub fn scan_trivia(&mut self) {
+        let mut queued_newlines = 0;
         while let Some(trivia) = self.ready_trivia() {
             match trivia.kind {
-                TriviaKind::BlockComment => {
-                    self.scan_text(trivia.content.to_string().into(), TextMode::Always);
-                }
-                TriviaKind::LineComment => {
+                TriviaKind::LineComment | TriviaKind::BlockComment => {
+                    for _ in 0..queued_newlines {
+                        self.scan_break(false);
+                    }
+                    queued_newlines = 0;
+                    self.scan_text(" ".into(), TextMode::Always);
                     self.scan_text(trivia.content.to_string().into(), TextMode::Always);
                 }
                 TriviaKind::Whitespace => {
-                    if trivia.newlines() < 2 {
-                        self.scan_break(false);
-                    }
+                    queued_newlines += trivia.newlines();
                 }
             }
         }

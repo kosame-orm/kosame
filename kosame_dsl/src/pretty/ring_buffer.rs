@@ -29,6 +29,11 @@ impl<T> RingBuffer<T> {
     }
 
     #[must_use]
+    pub fn last(&self) -> Option<&T> {
+        self.inner.iter().last()
+    }
+
+    #[must_use]
     pub fn len(&self) -> usize {
         self.inner.len()
     }
