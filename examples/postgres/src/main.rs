@@ -53,8 +53,8 @@ mod schema {
     pg_table! {
         create table comments (
             id int primary key,
-            post_id int not null,
-            content text not null,
+            post_id int not null /* before comma */,
+            content text not null, /* after comma */
             upvotes int not null default 0,
         );
 

@@ -54,6 +54,9 @@ where
     fn pretty_print(&self, printer: &mut Printer<'_>) {
         for (index, item) in self.pairs().enumerate() {
             item.value().pretty_print(printer);
+            if item.punct().is_some() {
+                printer.scan_no_break_trivia();
+            }
             if index == self.len() - 1 {
                 printer.scan_text(",".into(), TextMode::Break);
             } else {

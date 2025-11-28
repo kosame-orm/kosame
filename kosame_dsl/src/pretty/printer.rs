@@ -95,13 +95,13 @@ impl<'a> Printer<'a> {
         }
     }
 
-    pub fn set_cursor(&mut self, cursor: LineColumn) {
+    pub fn move_cursor(&mut self, cursor: LineColumn) {
         assert!(cursor >= self.cursor);
         self.cursor = cursor;
     }
 
     pub fn advance_cursor(&mut self) {
-        self.set_cursor(LineColumn {
+        self.move_cursor(LineColumn {
             line: self.cursor.line,
             column: self.cursor.column + 1,
         });
@@ -176,7 +176,7 @@ impl<'a> Printer<'a> {
                     self.scan_text(trivia.content.to_string().into(), TextMode::Always);
                 }
                 TriviaKind::Whitespace => {
-                    if trivia.newlines() > 1 {
+                    if trivia.newlines() < 2 {
                         self.scan_break(false);
                     }
                 }
