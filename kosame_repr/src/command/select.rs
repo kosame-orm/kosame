@@ -1,15 +1,9 @@
-use crate::{
-    clause,
-    clause::{From, GroupBy, Having, Limit, Offset, OrderBy, Where},
-};
+use std::fmt::Write;
+
+use crate::clause::{Limit, Offset, OrderBy, SelectCore};
 
 pub struct Select<'a> {
-    #[allow(clippy::struct_field_names)]
-    select: clause::Select<'a>,
-    from: Option<From<'a>>,
-    r#where: Option<Where<'a>>,
-    group_by: Option<GroupBy<'a>>,
-    having: Option<Having<'a>>,
+    chain: SelectChain<'a>,
     order_by: Option<OrderBy<'a>>,
     limit: Option<Limit<'a>>,
     offset: Option<Offset<'a>>,
@@ -20,21 +14,13 @@ impl<'a> Select<'a> {
     #[allow(clippy::too_many_arguments)]
     #[must_use]
     pub const fn new(
-        select: clause::Select<'a>,
-        from: Option<From<'a>>,
-        r#where: Option<Where<'a>>,
-        group_by: Option<GroupBy<'a>>,
-        having: Option<Having<'a>>,
+        chain: SelectChain<'a>,
         order_by: Option<OrderBy<'a>>,
         limit: Option<Limit<'a>>,
         offset: Option<Offset<'a>>,
     ) -> Self {
         Self {
-            select,
-            from,
-            r#where,
-            group_by,
-            having,
+            chain,
             order_by,
             limit,
             offset,
@@ -43,32 +29,8 @@ impl<'a> Select<'a> {
 
     #[inline]
     #[must_use]
-    pub const fn select(&self) -> &clause::Select<'a> {
-        &self.select
-    }
-
-    #[inline]
-    #[must_use]
-    pub const fn from(&self) -> Option<&From<'a>> {
-        self.from.as_ref()
-    }
-
-    #[inline]
-    #[must_use]
-    pub const fn r#where(&self) -> Option<&Where<'a>> {
-        self.r#where.as_ref()
-    }
-
-    #[inline]
-    #[must_use]
-    pub const fn group_by(&self) -> Option<&GroupBy<'a>> {
-        self.group_by.as_ref()
-    }
-
-    #[inline]
-    #[must_use]
-    pub const fn having(&self) -> Option<&Having<'a>> {
-        self.having.as_ref()
+    pub const fn chain(&self) -> &SelectChain<'a> {
+        &self.chain
     }
 
     #[inline]
@@ -95,14 +57,127 @@ impl kosame_sql::FmtSql for Select<'_> {
     where
         D: kosame_sql::Dialect,
     {
-        self.select.fmt_sql(formatter)?;
-        self.from.fmt_sql(formatter)?;
-        self.r#where.fmt_sql(formatter)?;
-        self.group_by.fmt_sql(formatter)?;
-        self.having.fmt_sql(formatter)?;
+        self.chain.fmt_sql(formatter)?;
         self.order_by.fmt_sql(formatter)?;
         self.limit.fmt_sql(formatter)?;
         self.offset.fmt_sql(formatter)?;
+        Ok(())
+    }
+}
+
+pub struct SelectChain<'a> {
+    start: SelectItem<'a>,
+    combinators: &'a [SelectCombinator<'a>],
+}
+
+impl<'a> SelectChain<'a> {
+    #[inline]
+    #[must_use]
+    pub const fn new(start: SelectItem<'a>, combinators: &'a [SelectCombinator<'a>]) -> Self {
+        Self { start, combinators }
+    }
+}
+
+impl kosame_sql::FmtSql for SelectChain<'_> {
+    fn fmt_sql<D>(&self, formatter: &mut kosame_sql::Formatter<D>) -> kosame_sql::Result
+    where
+        D: kosame_sql::Dialect,
+    {
+        self.start.fmt_sql(formatter)?;
+        for combinator in self.combinators {
+            combinator.fmt_sql(formatter)?;
+        }
+        Ok(())
+    }
+}
+
+pub enum SelectItem<'a> {
+    Core(SelectCore<'a>),
+    Paren(&'a Select<'a>),
+}
+
+impl kosame_sql::FmtSql for SelectItem<'_> {
+    fn fmt_sql<D>(&self, formatter: &mut kosame_sql::Formatter<D>) -> kosame_sql::Result
+    where
+        D: kosame_sql::Dialect,
+    {
+        match self {
+            Self::Core(core) => {
+                core.fmt_sql(formatter)?;
+            }
+            Self::Paren(select) => {
+                formatter.write_str("(")?;
+                select.fmt_sql(formatter)?;
+                formatter.write_str(")")?;
+            }
+        }
+        Ok(())
+    }
+}
+
+pub enum SetOp {
+    Union,
+    Intersect,
+    Except,
+}
+
+impl kosame_sql::FmtSql for SetOp {
+    fn fmt_sql<D>(&self, formatter: &mut kosame_sql::Formatter<D>) -> kosame_sql::Result
+    where
+        D: kosame_sql::Dialect,
+    {
+        match self {
+            Self::Union => formatter.write_str("union"),
+            Self::Intersect => formatter.write_str("intersect"),
+            Self::Except => formatter.write_str("except"),
+        }
+    }
+}
+
+pub enum SetQuantifier {
+    All,
+    Distinct,
+}
+
+impl kosame_sql::FmtSql for SetQuantifier {
+    fn fmt_sql<D>(&self, formatter: &mut kosame_sql::Formatter<D>) -> kosame_sql::Result
+    where
+        D: kosame_sql::Dialect,
+    {
+        match self {
+            Self::All => formatter.write_str(" all"),
+            Self::Distinct => Ok(()),
+        }
+    }
+}
+
+pub struct SelectCombinator<'a> {
+    op: SetOp,
+    quantifier: SetQuantifier,
+    right: SelectItem<'a>,
+}
+
+impl<'a> SelectCombinator<'a> {
+    #[inline]
+    #[must_use]
+    pub const fn new(op: SetOp, quantifier: SetQuantifier, right: SelectItem<'a>) -> Self {
+        Self {
+            op,
+            quantifier,
+            right,
+        }
+    }
+}
+
+impl kosame_sql::FmtSql for SelectCombinator<'_> {
+    fn fmt_sql<D>(&self, formatter: &mut kosame_sql::Formatter<D>) -> kosame_sql::Result
+    where
+        D: kosame_sql::Dialect,
+    {
+        formatter.write_str(" ")?;
+        self.op.fmt_sql(formatter)?;
+        self.quantifier.fmt_sql(formatter)?;
+        self.right.fmt_sql(formatter)?;
         Ok(())
     }
 }
