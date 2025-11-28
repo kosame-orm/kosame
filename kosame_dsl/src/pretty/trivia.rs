@@ -1,6 +1,6 @@
 use proc_macro2::LineColumn;
 
-use crate::pretty::Span;
+use super::Span;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum TriviaKind {

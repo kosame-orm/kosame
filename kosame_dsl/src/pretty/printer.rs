@@ -4,7 +4,7 @@ use proc_macro2::LineColumn;
 
 use crate::pretty::TriviaKind;
 
-use super::{RingBuffer, Span, Trivia};
+use super::{RingBuffer, Trivia};
 
 pub const MARGIN: isize = 89;
 pub const INDENT: isize = 4;
