@@ -3,18 +3,15 @@ use quote::{ToTokens, quote};
 use syn::parse::{Parse, ParseStream};
 
 use crate::{
-    clause::{self, From, GroupBy, Having, Limit, Offset, OrderBy, Where},
+    clause::{self, Limit, Offset, OrderBy},
+    keyword,
     parse_option::ParseOption,
     quote_option::QuoteOption,
     visitor::Visitor,
 };
 
 pub struct Select {
-    pub select: clause::Select,
-    pub from: Option<From>,
-    pub r#where: Option<Where>,
-    pub group_by: Option<GroupBy>,
-    pub having: Option<Having>,
+    pub chain: SelectChain,
     pub order_by: Option<OrderBy>,
     pub limit: Option<Limit>,
     pub offset: Option<Offset>,
@@ -22,23 +19,11 @@ pub struct Select {
 
 impl Select {
     pub fn peek(input: ParseStream) -> bool {
-        clause::Select::peek(input)
+        SelectItem::peek(input)
     }
 
     pub fn accept<'a>(&'a self, visitor: &mut impl Visitor<'a>) {
-        self.select.accept(visitor);
-        if let Some(inner) = self.from.as_ref() {
-            inner.accept(visitor);
-        }
-        if let Some(inner) = self.r#where.as_ref() {
-            inner.accept(visitor);
-        }
-        if let Some(inner) = self.group_by.as_ref() {
-            inner.accept(visitor);
-        }
-        if let Some(inner) = self.having.as_ref() {
-            inner.accept(visitor);
-        }
+        self.chain.accept(visitor);
         if let Some(inner) = self.order_by.as_ref() {
             inner.accept(visitor);
         }
@@ -53,41 +38,245 @@ impl Select {
 
 impl Parse for Select {
     fn parse(input: ParseStream) -> syn::Result<Self> {
+        let chain = input.parse()?;
+        let order_by = input.call(OrderBy::parse_option)?;
+        let limit = input.call(Limit::parse_option)?;
+        let offset = input.call(Offset::parse_option)?;
+
         Ok(Self {
-            select: input.parse()?,
-            from: input.call(From::parse_option)?,
-            r#where: input.call(Where::parse_option)?,
-            group_by: input.call(GroupBy::parse_option)?,
-            having: input.call(Having::parse_option)?,
-            order_by: input.call(OrderBy::parse_option)?,
-            limit: input.call(Limit::parse_option)?,
-            offset: input.call(Offset::parse_option)?,
+            chain,
+            order_by,
+            limit,
+            offset,
         })
     }
 }
 
 impl ToTokens for Select {
     fn to_tokens(&self, tokens: &mut TokenStream) {
-        let select = &self.select;
-        let from = QuoteOption::from(&self.from);
-        let r#where = QuoteOption::from(&self.r#where);
-        let group_by = QuoteOption::from(&self.group_by);
-        let having = QuoteOption::from(&self.having);
+        let chain = &self.chain;
         let order_by = QuoteOption::from(&self.order_by);
         let limit = QuoteOption::from(&self.limit);
         let offset = QuoteOption::from(&self.offset);
 
         quote! {
             ::kosame::repr::command::Select::new(
-                #select,
-                #from,
-                #r#where,
-                #group_by,
-                #having,
+                #chain,
                 #order_by,
                 #limit,
                 #offset,
             )
+        }
+        .to_tokens(tokens);
+    }
+}
+
+pub struct SelectChain {
+    pub start: SelectItem,
+    pub combinators: Vec<SelectCombinator>,
+}
+
+impl SelectChain {
+    pub fn accept<'a>(&'a self, visitor: &mut impl Visitor<'a>) {
+        self.start.accept(visitor);
+        for combinator in &self.combinators {
+            combinator.accept(visitor);
+        }
+    }
+}
+
+impl Parse for SelectChain {
+    fn parse(input: ParseStream) -> syn::Result<Self> {
+        let start = input.parse()?;
+        let mut combinators = Vec::new();
+
+        // Parse set operations (UNION, INTERSECT, EXCEPT)
+        while input.peek(keyword::union)
+            || input.peek(keyword::intersect)
+            || input.peek(keyword::except)
+        {
+            combinators.push(input.parse()?);
+        }
+
+        Ok(Self { start, combinators })
+    }
+}
+
+impl ToTokens for SelectChain {
+    fn to_tokens(&self, tokens: &mut TokenStream) {
+        let start = &self.start;
+        let combinators = &self.combinators;
+
+        quote! {
+            ::kosame::repr::command::SelectChain::new(
+                #start,
+                &[#(#combinators),*],
+            )
+        }
+        .to_tokens(tokens);
+    }
+}
+
+pub enum SelectItem {
+    Core(clause::SelectCore),
+    Paren(Box<Select>),
+}
+
+impl SelectItem {
+    pub fn peek(input: ParseStream) -> bool {
+        clause::SelectCore::peek(input) || input.peek(syn::token::Paren)
+    }
+
+    pub fn accept<'a>(&'a self, visitor: &mut impl Visitor<'a>) {
+        match self {
+            Self::Core(core) => core.accept(visitor),
+            Self::Paren(select) => select.accept(visitor),
+        }
+    }
+}
+
+impl Parse for SelectItem {
+    fn parse(input: ParseStream) -> syn::Result<Self> {
+        if input.peek(syn::token::Paren) {
+            let content;
+            syn::parenthesized!(content in input);
+            let select = content.parse()?;
+            Ok(Self::Paren(Box::new(select)))
+        } else {
+            let core = input.parse()?;
+            Ok(Self::Core(core))
+        }
+    }
+}
+
+impl ToTokens for SelectItem {
+    fn to_tokens(&self, tokens: &mut TokenStream) {
+        match self {
+            Self::Core(core) => {
+                quote! {
+                    ::kosame::repr::command::SelectItem::Core(#core)
+                }
+                .to_tokens(tokens);
+            }
+            Self::Paren(select) => {
+                quote! {
+                    ::kosame::repr::command::SelectItem::Paren(&#select)
+                }
+                .to_tokens(tokens);
+            }
+        }
+    }
+}
+
+pub struct SelectCombinator {
+    pub op: SetOp,
+    pub quantifier: SetQuantifier,
+    pub right: SelectItem,
+}
+
+impl SelectCombinator {
+    pub fn accept<'a>(&'a self, visitor: &mut impl Visitor<'a>) {
+        self.right.accept(visitor);
+    }
+}
+
+impl Parse for SelectCombinator {
+    fn parse(input: ParseStream) -> syn::Result<Self> {
+        let op = input.parse()?;
+        let quantifier = if input.peek(keyword::all) {
+            input.parse()?
+        } else {
+            SetQuantifier::Distinct
+        };
+        let right = input.parse()?;
+
+        Ok(Self {
+            op,
+            quantifier,
+            right,
+        })
+    }
+}
+
+impl ToTokens for SelectCombinator {
+    fn to_tokens(&self, tokens: &mut TokenStream) {
+        let op = &self.op;
+        let quantifier = &self.quantifier;
+        let right = &self.right;
+
+        quote! {
+            ::kosame::repr::command::SelectCombinator::new(
+                #op,
+                #quantifier,
+                #right,
+            )
+        }
+        .to_tokens(tokens);
+    }
+}
+
+pub enum SetOp {
+    Union(keyword::union),
+    Intersect(keyword::intersect),
+    Except(keyword::except),
+}
+
+impl Parse for SetOp {
+    fn parse(input: ParseStream) -> syn::Result<Self> {
+        let lookahead = input.lookahead1();
+        if lookahead.peek(keyword::union) {
+            Ok(Self::Union(input.parse()?))
+        } else if lookahead.peek(keyword::intersect) {
+            Ok(Self::Intersect(input.parse()?))
+        } else if lookahead.peek(keyword::except) {
+            Ok(Self::Except(input.parse()?))
+        } else {
+            Err(lookahead.error())
+        }
+    }
+}
+
+impl ToTokens for SetOp {
+    fn to_tokens(&self, tokens: &mut TokenStream) {
+        match self {
+            Self::Union(_) => {
+                quote! { ::kosame::repr::command::SetOp::Union }
+            }
+            Self::Intersect(_) => {
+                quote! { ::kosame::repr::command::SetOp::Intersect }
+            }
+            Self::Except(_) => {
+                quote! { ::kosame::repr::command::SetOp::Except }
+            }
+        }
+        .to_tokens(tokens);
+    }
+}
+
+pub enum SetQuantifier {
+    All(keyword::all),
+    Distinct,
+}
+
+impl Parse for SetQuantifier {
+    fn parse(input: ParseStream) -> syn::Result<Self> {
+        if input.peek(keyword::all) {
+            Ok(Self::All(input.parse()?))
+        } else {
+            Ok(Self::Distinct)
+        }
+    }
+}
+
+impl ToTokens for SetQuantifier {
+    fn to_tokens(&self, tokens: &mut TokenStream) {
+        match self {
+            Self::All(_) => {
+                quote! { ::kosame::repr::command::SetQuantifier::All }
+            }
+            Self::Distinct => {
+                quote! { ::kosame::repr::command::SetQuantifier::Distinct }
+            }
         }
         .to_tokens(tokens);
     }
