@@ -4,6 +4,7 @@ use syn::parse::{Parse, ParseStream};
 
 use crate::{
     clause::{self, From, GroupBy, Having, Limit, Offset, OrderBy, Where},
+    parse_option::ParseOption,
     quote_option::QuoteOption,
     visitor::Visitor,
 };
@@ -54,13 +55,13 @@ impl Parse for Select {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         Ok(Self {
             select: input.parse()?,
-            from: input.call(From::parse_optional)?,
-            r#where: input.call(Where::parse_optional)?,
-            group_by: input.call(GroupBy::parse_optional)?,
-            having: input.call(Having::parse_optional)?,
-            order_by: input.call(OrderBy::parse_optional)?,
-            limit: input.call(Limit::parse_optional)?,
-            offset: input.call(Offset::parse_optional)?,
+            from: input.call(From::parse_option)?,
+            r#where: input.call(Where::parse_option)?,
+            group_by: input.call(GroupBy::parse_option)?,
+            having: input.call(Having::parse_option)?,
+            order_by: input.call(OrderBy::parse_option)?,
+            limit: input.call(Limit::parse_option)?,
+            offset: input.call(Offset::parse_option)?,
         })
     }
 }

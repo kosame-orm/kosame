@@ -26,6 +26,8 @@ pub use values::*;
 pub use r#where::*;
 pub use with::*;
 
+use crate::parse_option::ParseOption;
+
 pub fn peek_clause(input: syn::parse::ParseStream) -> bool {
     With::peek(input)
         || From::peek(input)

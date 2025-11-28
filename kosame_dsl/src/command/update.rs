@@ -5,6 +5,7 @@ use syn::parse::{Parse, ParseStream};
 use crate::{
     clause::{From, Returning, Set, Where},
     keyword,
+    parse_option::ParseOption,
     part::TargetTable,
     quote_option::QuoteOption,
     visitor::Visitor,
@@ -42,9 +43,9 @@ impl Parse for Update {
             update_keyword: input.call(keyword::update::parse_autocomplete)?,
             target_table: input.parse()?,
             set: input.parse()?,
-            from: input.call(From::parse_optional)?,
-            r#where: input.call(Where::parse_optional)?,
-            returning: input.call(Returning::parse_optional)?,
+            from: input.call(From::parse_option)?,
+            r#where: input.call(Where::parse_option)?,
+            returning: input.call(Returning::parse_option)?,
         })
     }
 }

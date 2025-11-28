@@ -1,19 +1,17 @@
 use syn::{
     Path, Token,
-    parse::{Parse, ParseBuffer, ParseStream},
+    parse::{Parse, ParseStream},
 };
+
+use crate::parse_option::ParseOption;
 
 pub struct TypeOverride {
     pub colon_token: Token![:],
     pub type_path: Path,
 }
 
-impl TypeOverride {
-    pub fn parse_optional(input: ParseStream) -> syn::Result<Option<Self>> {
-        Self::peek(input).then(|| input.parse()).transpose()
-    }
-
-    pub fn peek(input: &ParseBuffer<'_>) -> bool {
+impl ParseOption for TypeOverride {
+    fn peek(input: ParseStream) -> bool {
         input.peek(Token![:])
     }
 }

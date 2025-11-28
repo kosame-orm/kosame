@@ -1,6 +1,7 @@
 use crate::clause::peek_clause;
 use crate::{
     clause::{Limit, Offset, OrderBy, Where},
+    parse_option::ParseOption,
     quote_option::QuoteOption,
     row::Row,
     visitor::Visitor,
@@ -277,10 +278,10 @@ impl Parse for Node {
             brace_token,
             star,
             fields,
-            r#where: content.call(Where::parse_optional)?,
-            order_by: content.call(OrderBy::parse_optional)?,
-            limit: content.call(Limit::parse_optional)?,
-            offset: content.call(Offset::parse_optional)?,
+            r#where: content.call(Where::parse_option)?,
+            order_by: content.call(OrderBy::parse_option)?,
+            limit: content.call(Limit::parse_option)?,
+            offset: content.call(Offset::parse_option)?,
         })
     }
 }

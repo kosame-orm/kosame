@@ -10,6 +10,7 @@ use crate::{
     command::{Command, CommandType},
     correlations::CorrelationId,
     keyword,
+    parse_option::ParseOption,
     part::TableAlias,
     visitor::Visitor,
 };
@@ -19,14 +20,13 @@ pub struct With {
     pub items: Punctuated<WithItem, Token![,]>,
 }
 
-impl With {
-    pub fn parse_optional(input: ParseStream) -> syn::Result<Option<Self>> {
-        Self::peek(input).then(|| input.parse()).transpose()
-    }
-
-    pub fn peek(input: ParseStream) -> bool {
+impl ParseOption for With {
+    fn peek(input: ParseStream) -> bool {
         input.peek(keyword::with)
     }
+}
+
+impl With {
 
     pub fn accept<'a>(&'a self, visitor: &mut impl Visitor<'a>) {
         for item in &self.items {

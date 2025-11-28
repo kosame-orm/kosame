@@ -5,17 +5,15 @@ use syn::{
     parse::{Parse, ParseStream},
 };
 
+use crate::parse_option::ParseOption;
+
 pub struct Alias {
     pub as_token: Token![as],
     pub ident: Ident,
 }
 
-impl Alias {
-    pub fn parse_optional(input: ParseStream) -> syn::Result<Option<Self>> {
-        Self::peek(input).then(|| input.parse()).transpose()
-    }
-
-    pub fn peek(input: ParseStream) -> bool {
+impl ParseOption for Alias {
+    fn peek(input: ParseStream) -> bool {
         input.peek(Token![as])
     }
 }

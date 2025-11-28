@@ -6,7 +6,7 @@ use syn::{
     punctuated::Punctuated,
 };
 
-use crate::{clause::peek_clause, expr::Expr, keyword, visitor::Visitor};
+use crate::{clause::peek_clause, expr::Expr, keyword, parse_option::ParseOption, visitor::Visitor};
 
 pub struct OrderBy {
     pub order: keyword::order,
@@ -14,14 +14,13 @@ pub struct OrderBy {
     pub items: Punctuated<OrderByItem, Token![,]>,
 }
 
-impl OrderBy {
-    pub fn parse_optional(input: ParseStream) -> syn::Result<Option<Self>> {
-        Self::peek(input).then(|| input.parse()).transpose()
-    }
-
-    pub fn peek(input: ParseStream) -> bool {
+impl ParseOption for OrderBy {
+    fn peek(input: ParseStream) -> bool {
         input.peek(keyword::order) && input.peek2(keyword::by)
     }
+}
+
+impl OrderBy {
 
     pub fn accept<'a>(&'a self, visitor: &mut impl Visitor<'a>) {
         for item in &self.items {
@@ -76,8 +75,8 @@ impl Parse for OrderByItem {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         Ok(Self {
             expr: input.parse()?,
-            dir: input.call(OrderByDir::parse_optional)?,
-            nulls: input.call(OrderByNulls::parse_optional)?,
+            dir: input.call(OrderByDir::parse_option)?,
+            nulls: input.call(OrderByNulls::parse_option)?,
         })
     }
 }
@@ -110,12 +109,8 @@ pub enum OrderByDir {
     Desc(keyword::desc),
 }
 
-impl OrderByDir {
-    pub fn parse_optional(input: ParseStream) -> syn::Result<Option<Self>> {
-        Self::peek(input).then(|| input.parse()).transpose()
-    }
-
-    pub fn peek(input: ParseStream) -> bool {
+impl ParseOption for OrderByDir {
+    fn peek(input: ParseStream) -> bool {
         input.peek(keyword::asc) || input.peek(keyword::desc)
     }
 }
@@ -139,12 +134,8 @@ pub enum OrderByNulls {
     Last(keyword::nulls, keyword::last),
 }
 
-impl OrderByNulls {
-    pub fn parse_optional(input: ParseStream) -> syn::Result<Option<Self>> {
-        Self::peek(input).then(|| input.parse()).transpose()
-    }
-
-    pub fn peek(input: ParseStream) -> bool {
+impl ParseOption for OrderByNulls {
+    fn peek(input: ParseStream) -> bool {
         input.peek(keyword::nulls)
     }
 }

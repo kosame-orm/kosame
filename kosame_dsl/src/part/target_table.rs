@@ -6,6 +6,7 @@ use syn::{
 };
 
 use crate::{
+    parse_option::ParseOption,
     part::{Alias, TablePath},
     path_ext::PathExt,
     quote_option::QuoteOption,
@@ -43,7 +44,7 @@ impl Parse for TargetTable {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         Ok(Self {
             table: input.parse()?,
-            alias: input.call(Alias::parse_optional)?,
+            alias: input.call(Alias::parse_option)?,
         })
     }
 }

@@ -5,22 +5,20 @@ use syn::{
     parse::{Parse, ParseStream},
 };
 
-use crate::{expr::Expr, visitor::Visitor};
+use crate::{expr::Expr, parse_option::ParseOption, visitor::Visitor};
 
 pub struct Where {
     pub where_token: Token![where],
     pub expr: Expr,
 }
 
-impl Where {
-    pub fn parse_optional(input: ParseStream) -> syn::Result<Option<Self>> {
-        Self::peek(input).then(|| input.parse()).transpose()
-    }
-
-    pub fn peek(input: ParseStream) -> bool {
+impl ParseOption for Where {
+    fn peek(input: ParseStream) -> bool {
         input.peek(Token![where])
     }
+}
 
+impl Where {
     pub fn accept<'a>(&'a self, visitor: &mut impl Visitor<'a>) {
         self.expr.accept(visitor);
     }

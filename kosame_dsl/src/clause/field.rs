@@ -12,6 +12,7 @@ use crate::{
     correlations::{CorrelationId, Correlations},
     expr::Expr,
     inferred_type::{InferredType, resolve_type},
+    parse_option::ParseOption,
     part::{Alias, TypeOverride},
     quote_option::QuoteOption,
     row::RowField,
@@ -84,8 +85,8 @@ impl Parse for Field {
         Ok(Self {
             attrs: input.call(Attribute::parse_outer)?,
             expr: input.parse()?,
-            alias: input.call(Alias::parse_optional)?,
-            type_override: input.call(TypeOverride::parse_optional)?,
+            alias: input.call(Alias::parse_option)?,
+            type_override: input.call(TypeOverride::parse_option)?,
         })
     }
 }

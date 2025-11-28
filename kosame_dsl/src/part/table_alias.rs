@@ -6,7 +6,7 @@ use syn::{
     spanned::Spanned,
 };
 
-use crate::{clause::peek_clause, keyword, part::ColumnList, quote_option::QuoteOption};
+use crate::{clause::peek_clause, keyword, parse_option::ParseOption, part::ColumnList, quote_option::QuoteOption};
 
 pub struct TableAlias {
     pub as_token: Option<Token![as]>,
@@ -14,8 +14,14 @@ pub struct TableAlias {
     pub columns: Option<ColumnList>,
 }
 
-impl TableAlias {
-    pub fn parse_optional(input: ParseStream) -> syn::Result<Option<Self>> {
+impl ParseOption for TableAlias {
+    fn peek(_input: ParseStream) -> bool {
+        // TableAlias has custom parsing logic, so peek is not meaningful here.
+        // The actual logic is in parse_option override.
+        true
+    }
+
+    fn parse_option(input: ParseStream) -> syn::Result<Option<Self>> {
         if input.is_empty() || peek_clause(input) {
             return Ok(None);
         }

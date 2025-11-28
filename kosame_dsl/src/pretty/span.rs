@@ -57,6 +57,10 @@ impl Span {
     }
 }
 
+/// Converts a [`proc_macro2::Span`] to our custom [`Span`] type.
+///
+/// This conversion extracts only the position information (start and end [`LineColumn`])
+/// from the `proc_macro2::Span`, discarding hygiene and source file metadata.
 impl From<proc_macro2::Span> for Span {
     fn from(span: proc_macro2::Span) -> Self {
         Span {

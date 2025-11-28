@@ -2,22 +2,20 @@ use proc_macro2::TokenStream;
 use quote::{ToTokens, quote};
 use syn::parse::{Parse, ParseStream};
 
-use crate::{expr::Expr, keyword, visitor::Visitor};
+use crate::{expr::Expr, keyword, parse_option::ParseOption, visitor::Visitor};
 
 pub struct Limit {
     pub limit: keyword::limit,
     pub expr: Expr,
 }
 
-impl Limit {
-    pub fn parse_optional(input: ParseStream) -> syn::Result<Option<Self>> {
-        Self::peek(input).then(|| input.parse()).transpose()
-    }
-
-    pub fn peek(input: ParseStream) -> bool {
+impl ParseOption for Limit {
+    fn peek(input: ParseStream) -> bool {
         input.peek(keyword::limit)
     }
+}
 
+impl Limit {
     pub fn accept<'a>(&'a self, visitor: &mut impl Visitor<'a>) {
         self.expr.accept(visitor);
     }

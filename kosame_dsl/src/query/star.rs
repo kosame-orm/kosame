@@ -6,7 +6,7 @@ use syn::{
     parse_quote,
 };
 
-use crate::{part::Alias, row::RowField};
+use crate::{parse_option::ParseOption, part::Alias, row::RowField};
 
 pub struct Star {
     pub attrs: Vec<Attribute>,
@@ -43,7 +43,7 @@ impl Parse for Star {
         Ok(Self {
             attrs: input.call(Attribute::parse_outer)?,
             star_token: input.parse()?,
-            alias: input.call(Alias::parse_optional)?,
+            alias: input.call(Alias::parse_option)?,
         })
     }
 }

@@ -1,6 +1,7 @@
 use super::Node;
 use crate::{
     expr::Expr,
+    parse_option::ParseOption,
     part::{Alias, TypeOverride},
     path_ext::PathExt,
     query::node_path::QueryNodePath,
@@ -135,7 +136,7 @@ impl Parse for Field {
                 attrs,
                 name: input.parse()?,
                 node: input.parse()?,
-                alias: input.call(Alias::parse_optional)?,
+                alias: input.call(Alias::parse_option)?,
             })
         } else if ident.is_ok()
             && (fork.peek(Token![,])
@@ -146,8 +147,8 @@ impl Parse for Field {
             Ok(Self::Column {
                 attrs,
                 name: input.parse()?,
-                alias: input.call(Alias::parse_optional)?,
-                type_override: input.call(TypeOverride::parse_optional)?,
+                alias: input.call(Alias::parse_option)?,
+                type_override: input.call(TypeOverride::parse_option)?,
             })
         } else {
             Ok(Self::Expr {

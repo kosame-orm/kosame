@@ -2,21 +2,20 @@ use proc_macro2::TokenStream;
 use quote::{ToTokens, quote};
 use syn::parse::{Parse, ParseStream};
 
-use crate::{expr::Expr, keyword, visitor::Visitor};
+use crate::{expr::Expr, keyword, parse_option::ParseOption, visitor::Visitor};
 
 pub struct Having {
     pub having: keyword::having,
     pub expr: Expr,
 }
 
-impl Having {
-    pub fn parse_optional(input: ParseStream) -> syn::Result<Option<Self>> {
-        Self::peek(input).then(|| input.parse()).transpose()
-    }
-
-    pub fn peek(input: ParseStream) -> bool {
+impl ParseOption for Having {
+    fn peek(input: ParseStream) -> bool {
         input.peek(keyword::having)
     }
+}
+
+impl Having {
 
     pub fn accept<'a>(&'a self, visitor: &mut impl Visitor<'a>) {
         self.expr.accept(visitor);

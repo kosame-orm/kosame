@@ -10,6 +10,7 @@ use crate::{
     bind_params::{BindParamsBuilder, BindParamsClosure},
     command::Command,
     correlations::{CorrelationId, Correlations},
+    parse_option::ParseOption,
     part::Alias,
     row::Row,
     scopes::{ScopeId, Scopes},
@@ -51,14 +52,14 @@ impl Parse for Statement {
                 inner_attrs,
                 paren_token: Some(parenthesized!(content in input)),
                 command: content.parse()?,
-                alias: input.call(Alias::parse_optional)?,
+                alias: input.call(Alias::parse_option)?,
             })
         } else {
             Ok(Self {
                 inner_attrs,
                 paren_token: None,
                 command: input.parse()?,
-                alias: input.call(Alias::parse_optional)?,
+                alias: input.call(Alias::parse_option)?,
             })
         }
     }

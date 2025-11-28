@@ -5,6 +5,7 @@ use syn::parse::{Parse, ParseStream};
 use crate::{
     clause::{FromChain, Returning, Where},
     keyword,
+    parse_option::ParseOption,
     part::TargetTable,
     quote_option::QuoteOption,
     visitor::Visitor,
@@ -44,9 +45,9 @@ impl Parse for Delete {
             delete_keyword: input.parse()?,
             from_keyword: input.parse()?,
             target_table: input.parse()?,
-            using: input.call(Using::parse_optional)?,
-            r#where: input.call(Where::parse_optional)?,
-            returning: input.call(Returning::parse_optional)?,
+            using: input.call(Using::parse_option)?,
+            r#where: input.call(Where::parse_option)?,
+            returning: input.call(Returning::parse_option)?,
         })
     }
 }
@@ -75,14 +76,13 @@ pub struct Using {
     pub chain: FromChain,
 }
 
-impl Using {
-    pub fn parse_optional(input: ParseStream) -> syn::Result<Option<Self>> {
-        Self::peek(input).then(|| input.parse()).transpose()
-    }
-
-    pub fn peek(input: ParseStream) -> bool {
+impl ParseOption for Using {
+    fn peek(input: ParseStream) -> bool {
         input.peek(keyword::using)
     }
+}
+
+impl Using {
 
     pub fn accept<'a>(&'a self, visitor: &mut impl Visitor<'a>) {
         self.chain.accept(visitor);

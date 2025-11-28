@@ -5,6 +5,7 @@ use syn::parse::{Parse, ParseStream};
 use crate::{
     clause::{Returning, Values},
     keyword,
+    parse_option::ParseOption,
     part::TargetTable,
     quote_option::QuoteOption,
     visitor::Visitor,
@@ -39,7 +40,7 @@ impl Parse for Insert {
             into_keyword: input.parse()?,
             target_table: input.parse()?,
             values: input.parse()?,
-            returning: input.call(Returning::parse_optional)?,
+            returning: input.call(Returning::parse_option)?,
         })
     }
 }

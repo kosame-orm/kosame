@@ -2,21 +2,20 @@ use proc_macro2::TokenStream;
 use quote::{ToTokens, quote};
 use syn::parse::{Parse, ParseStream};
 
-use crate::{clause::Fields, keyword, visitor::Visitor};
+use crate::{clause::Fields, keyword, parse_option::ParseOption, visitor::Visitor};
 
 pub struct Returning {
     pub returning: keyword::returning,
     pub fields: Fields,
 }
 
-impl Returning {
-    pub fn parse_optional(input: ParseStream) -> syn::Result<Option<Self>> {
-        Self::peek(input).then(|| input.parse()).transpose()
-    }
-
-    pub fn peek(input: ParseStream) -> bool {
+impl ParseOption for Returning {
+    fn peek(input: ParseStream) -> bool {
         input.peek(keyword::returning)
     }
+}
+
+impl Returning {
 
     pub fn accept<'a>(&'a self, visitor: &mut impl Visitor<'a>) {
         self.fields.accept(visitor);

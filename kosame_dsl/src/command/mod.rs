@@ -19,6 +19,7 @@ use crate::{
     clause::{Fields, FromChain, With},
     correlations::CorrelationId,
     keyword,
+    parse_option::ParseOption,
     part::TargetTable,
     quote_option::QuoteOption,
     scopes::ScopeId,
@@ -65,7 +66,7 @@ impl Parse for Command {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         Ok(Self {
             attrs: input.call(Attribute::parse_outer)?,
-            with: input.call(With::parse_optional)?,
+            with: input.call(With::parse_option)?,
             command_type: input.parse()?,
             correlation_id: CorrelationId::new(),
             scope_id: ScopeId::new(),

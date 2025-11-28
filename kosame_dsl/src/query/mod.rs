@@ -18,6 +18,7 @@ use crate::{
     attribute::{CustomMeta, MetaLocation},
     bind_params::{BindParamsBuilder, BindParamsClosure},
     correlations::{CorrelationId, Correlations},
+    parse_option::ParseOption,
     part::{Alias, TablePath},
     path_ext::PathExt,
     scopes::{ScopeId, Scopes},
@@ -48,7 +49,7 @@ impl Parse for Query {
             },
             table: input.parse()?,
             body: input.parse()?,
-            alias: input.call(Alias::parse_optional)?,
+            alias: input.call(Alias::parse_option)?,
         })
     }
 }

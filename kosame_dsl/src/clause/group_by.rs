@@ -6,7 +6,7 @@ use syn::{
     punctuated::Punctuated,
 };
 
-use crate::{clause::peek_clause, expr::Expr, keyword, visitor::Visitor};
+use crate::{clause::peek_clause, expr::Expr, keyword, parse_option::ParseOption, visitor::Visitor};
 
 pub struct GroupBy {
     pub group: keyword::group,
@@ -14,14 +14,13 @@ pub struct GroupBy {
     pub items: Punctuated<GroupByItem, Token![,]>,
 }
 
-impl GroupBy {
-    pub fn parse_optional(input: ParseStream) -> syn::Result<Option<Self>> {
-        Self::peek(input).then(|| input.parse()).transpose()
-    }
-
-    pub fn peek(input: ParseStream) -> bool {
+impl ParseOption for GroupBy {
+    fn peek(input: ParseStream) -> bool {
         input.peek(keyword::group) && input.peek2(keyword::by)
     }
+}
+
+impl GroupBy {
 
     pub fn accept<'a>(&'a self, visitor: &mut impl Visitor<'a>) {
         for item in &self.items {

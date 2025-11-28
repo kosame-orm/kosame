@@ -11,6 +11,7 @@ use crate::{
     correlations::CorrelationId,
     expr::Expr,
     keyword,
+    parse_option::ParseOption,
     part::{TableAlias, TablePath},
     quote_option::QuoteOption,
     scopes::ScopeId,
@@ -22,17 +23,15 @@ pub struct From {
     pub chain: FromChain,
 }
 
+impl ParseOption for From {
+    fn peek(input: ParseStream) -> bool {
+        input.peek(keyword::from)
+    }
+}
+
 impl From {
     pub fn accept<'a>(&'a self, visitor: &mut impl Visitor<'a>) {
         self.chain.accept(visitor);
-    }
-
-    pub fn parse_optional(input: ParseStream) -> syn::Result<Option<Self>> {
-        Self::peek(input).then(|| input.parse()).transpose()
-    }
-
-    pub fn peek(input: ParseStream) -> bool {
-        input.peek(keyword::from)
     }
 }
 
@@ -222,13 +221,13 @@ impl Parse for FromItem {
                 lateral_keyword,
                 paren_token: parenthesized!(content in input),
                 command: content.parse()?,
-                alias: input.call(TableAlias::parse_optional)?,
+                alias: input.call(TableAlias::parse_option)?,
                 correlation_id: CorrelationId::new(),
             })
         } else if lookahead.peek(Ident) {
             Ok(Self::Table {
                 table_path: input.parse()?,
-                alias: input.call(TableAlias::parse_optional)?,
+                alias: input.call(TableAlias::parse_option)?,
                 correlation_id: CorrelationId::new(),
             })
         } else {
