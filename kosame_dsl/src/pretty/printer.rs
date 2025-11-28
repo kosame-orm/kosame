@@ -102,7 +102,6 @@ impl<'a> Printer<'a> {
     pub fn set_cursor(&mut self, cursor: LineColumn) {
         assert!(cursor >= self.cursor);
         self.cursor = cursor;
-        self.scan_trailing_comments();
     }
 
     pub fn advance_cursor(&mut self) {
@@ -164,7 +163,7 @@ impl<'a> Printer<'a> {
         self.tokens.push_back(Token::End);
     }
 
-    fn scan_trailing_comments(&mut self) {
+    pub fn scan_no_break_trivia(&mut self) {
         while let Some(trivia) = self.ready_trivia() {
             match trivia.kind {
                 TriviaKind::BlockComment => {
@@ -173,8 +172,25 @@ impl<'a> Printer<'a> {
                 TriviaKind::LineComment => {
                     self.scan_comment(trivia.content, true);
                 }
-                TriviaKind::Whitespace if trivia.newlines() == 0 => {}
-                TriviaKind::Whitespace => break,
+                TriviaKind::Whitespace => {}
+            }
+        }
+    }
+
+    fn scan_trivia(&mut self) {
+        while let Some(trivia) = self.ready_trivia() {
+            match trivia.kind {
+                TriviaKind::BlockComment => {
+                    self.scan_comment(trivia.content, false);
+                }
+                TriviaKind::LineComment => {
+                    self.scan_comment(trivia.content, true);
+                }
+                TriviaKind::Whitespace => {
+                    if trivia.newlines() > 1 {
+                        self.scan_break(false);
+                    }
+                }
             }
         }
     }
@@ -241,6 +257,9 @@ impl<'a> Printer<'a> {
                 string,
                 force_break,
             } => {
+                if self.pending_break {
+                    self.print_break();
+                }
                 if self.line_dirty() {
                     self.output.push(' ');
                     self.space -= 1;
@@ -292,11 +311,10 @@ impl<'a> Printer<'a> {
             match trivia.kind {
                 TriviaKind::BlockComment => {
                     self.scan_comment(trivia.content, false);
-                    self.scan_break(false);
+                    self.scan_break(true);
                 }
                 TriviaKind::LineComment => {
                     self.scan_comment(trivia.content, true);
-                    self.scan_break(false);
                 }
                 TriviaKind::Whitespace => {}
             }

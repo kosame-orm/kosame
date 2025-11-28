@@ -6,6 +6,9 @@ use super::{PrettyPrint, Printer, TextMode};
 
 impl PrettyPrint for &'static str {
     fn pretty_print(&self, printer: &mut Printer<'_>) {
+        if *self == " " {
+            printer.scan_no_break_trivia();
+        }
         printer.scan_text((*self).into(), TextMode::Always);
     }
 }
