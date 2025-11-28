@@ -3,7 +3,7 @@ use quote::{ToTokens, quote};
 use syn::parse::{Parse, ParseStream};
 
 use crate::{
-    clause::{self, Limit, Offset, OrderBy},
+    clause::{self, Fields, Limit, Offset, OrderBy},
     keyword,
     parse_option::ParseOption,
     quote_option::QuoteOption,
@@ -18,6 +18,13 @@ pub struct Select {
 }
 
 impl Select {
+    pub fn fields(&self) -> &Fields {
+        match &self.chain.start {
+            SelectItem::Paren(select) => select.fields(),
+            SelectItem::Core(core) => &core.select.fields,
+        }
+    }
+
     pub fn peek(input: ParseStream) -> bool {
         SelectItem::peek(input)
     }

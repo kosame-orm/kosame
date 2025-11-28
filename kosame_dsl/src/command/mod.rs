@@ -111,7 +111,7 @@ impl CommandType {
         match self {
             Self::Delete(inner) => inner.returning.as_ref().map(|returning| &returning.fields),
             Self::Insert(inner) => inner.returning.as_ref().map(|returning| &returning.fields),
-            Self::Select(inner) => Some(&inner.select.fields),
+            Self::Select(inner) => Some(&inner.fields()),
             Self::Update(inner) => inner.returning.as_ref().map(|returning| &returning.fields),
         }
     }
