@@ -32,6 +32,9 @@ enum Token<'a> {
         len: isize,
         force: bool,
     },
+    Indent {
+        indent: isize,
+    },
     Begin {
         mode: BreakMode,
         len: isize,
@@ -118,6 +121,10 @@ impl<'a> Printer<'a> {
         let len = if force { MARGIN } else { 0 };
         self.tokens.push_back(Token::Break { len, force });
         self.push_len(len);
+    }
+
+    pub fn scan_indent(&mut self, indent: isize) {
+        self.tokens.push_back(Token::Indent { indent });
     }
 
     pub fn scan_begin(&mut self, mode: BreakMode) {
@@ -252,6 +259,9 @@ impl<'a> Printer<'a> {
                     self.print_break();
                 }
             }
+            Token::Indent { indent } => {
+                self.indent += indent;
+            }
             Token::Begin { mode, len, .. } => {
                 self.print_indent();
                 let group_break = *len >= self.space && *mode == BreakMode::Consistent;
@@ -260,11 +270,9 @@ impl<'a> Printer<'a> {
                     group_break,
                     content_break,
                 });
-                self.indent += 1;
             }
             Token::End => {
                 self.print_frames.pop();
-                self.indent -= 1;
             }
         }
     }

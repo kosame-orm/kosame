@@ -11,6 +11,7 @@ pub trait Delim {
     ) {
         printer.flush_trivia(self.span().open().into());
         self.open_text().pretty_print(printer);
+        printer.scan_indent(1);
         if let Some(break_mode) = break_mode {
             printer.scan_begin(break_mode);
         }
@@ -21,6 +22,7 @@ pub trait Delim {
         if break_mode.is_some() {
             printer.scan_end();
         }
+        printer.scan_indent(-1);
         self.close_text().pretty_print(printer);
     }
 

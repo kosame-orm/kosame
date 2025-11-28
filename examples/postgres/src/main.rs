@@ -12,48 +12,48 @@ mod schema {
         create table lel (id int primary key);
     }
 
-    // pg_table! {
-    //     // Kosame uses the familiar SQL syntax to declare tables.
-    //     create table kek (
-    //         id int primary key not null not null not null not /*kek*/ null not null
-    //             not null not null not null not null not null not null not null not null
-    //             not null not null not null not //pip
-    //             null not null not null not null default (3 + 4 + (5 + 6 + 8 + 9 + 10
-    //                     + now(5))),
-    //     );
-    //
-    //     pip: (
-    //         kek,
-    //         schnebul,
-    //         kek,
-    //         kek,
-    //         kek,
-    //         kek,
-    //         schnebul,
-    //         kek,
-    //         kek,
-    //         kek,
-    //         kek,
-    //         kek,
-    //         kek,
-    //         kek,
-    //     ) => mflasdf (
-    //         lel,
-    //         lel,
-    //         le,
-    //         le,
-    //         le,
-    //         le,
-    //         le,
-    //         le,
-    //         le,
-    //         le,
-    //         le,
-    //         le,
-    //         le,
-    //         lelllllllllll,
-    //     ),
-    // }
+    pg_table! {
+        // Kosame uses the familiar SQL syntax to declare tables.
+        create table kek (
+            id int primary key not null not null not null not /*kek*/ null not null
+                not null not null not null not null not null not null not null not null
+                not null not null not null not //pip
+                null not null not null not null default (3 + 4 + (5 + 6 + 8 + 9 + 10
+                        + now(5))),
+        );
+
+        pip: (
+            kek,
+            schnebul,
+            kek,
+            kek,
+            kek,
+            kek,
+            schnebul,
+            kek,
+            kek,
+            kek,
+            kek,
+            kek,
+            kek,
+            kek,
+        ) => mflasdf (
+            lel,
+            lel,
+            le,
+            le,
+            le,
+            le,
+            le,
+            le,
+            le,
+            le,
+            le,
+            le,
+            le,
+            lelllllllllll,
+        ),
+    }
 
     pg_table! {
         // Kosame uses the familiar SQL syntax to declare tables.
@@ -70,7 +70,7 @@ mod schema {
         );
 
         // Define a relation to another table. This enables relational queries.
-        comments: (id) <= comments (post_id),
+        comments: (id) <= super::schema::comments (post_id),
     }
 
     pg_table! {
