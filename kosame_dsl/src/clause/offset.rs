@@ -16,7 +16,6 @@ impl ParseOption for Offset {
 }
 
 impl Offset {
-
     pub fn accept<'a>(&'a self, visitor: &mut impl Visitor<'a>) {
         self.expr.accept(visitor);
     }

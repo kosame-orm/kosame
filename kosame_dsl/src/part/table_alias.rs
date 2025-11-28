@@ -6,7 +6,10 @@ use syn::{
     spanned::Spanned,
 };
 
-use crate::{clause::peek_clause, keyword, parse_option::ParseOption, part::ColumnList, quote_option::QuoteOption};
+use crate::{
+    clause::peek_clause, keyword, parse_option::ParseOption, part::ColumnList,
+    quote_option::QuoteOption,
+};
 
 pub struct TableAlias {
     pub as_token: Option<Token![as]>,

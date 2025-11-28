@@ -16,7 +16,6 @@ impl ParseOption for Returning {
 }
 
 impl Returning {
-
     pub fn accept<'a>(&'a self, visitor: &mut impl Visitor<'a>) {
         self.fields.accept(visitor);
     }

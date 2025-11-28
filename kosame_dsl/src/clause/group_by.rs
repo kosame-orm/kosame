@@ -6,7 +6,9 @@ use syn::{
     punctuated::Punctuated,
 };
 
-use crate::{clause::peek_clause, expr::Expr, keyword, parse_option::ParseOption, visitor::Visitor};
+use crate::{
+    clause::peek_clause, expr::Expr, keyword, parse_option::ParseOption, visitor::Visitor,
+};
 
 pub struct GroupBy {
     pub group: keyword::group,
@@ -21,7 +23,6 @@ impl ParseOption for GroupBy {
 }
 
 impl GroupBy {
-
     pub fn accept<'a>(&'a self, visitor: &mut impl Visitor<'a>) {
         for item in &self.items {
             item.expr.accept(visitor);

@@ -83,7 +83,6 @@ impl ParseOption for Using {
 }
 
 impl Using {
-
     pub fn accept<'a>(&'a self, visitor: &mut impl Visitor<'a>) {
         self.chain.accept(visitor);
     }

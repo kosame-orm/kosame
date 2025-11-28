@@ -16,7 +16,6 @@ impl ParseOption for Having {
 }
 
 impl Having {
-
     pub fn accept<'a>(&'a self, visitor: &mut impl Visitor<'a>) {
         self.expr.accept(visitor);
     }

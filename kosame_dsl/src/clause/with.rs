@@ -27,7 +27,6 @@ impl ParseOption for With {
 }
 
 impl With {
-
     pub fn accept<'a>(&'a self, visitor: &mut impl Visitor<'a>) {
         for item in &self.items {
             item.accept(visitor);
