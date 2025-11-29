@@ -18,7 +18,9 @@ pub use update::*;
 // Re-export visit functions
 pub use delete::{visit_delete, visit_using};
 pub use insert::visit_insert;
-pub use select::{visit_select_chain, visit_select_combinator, visit_select_command, visit_select_item};
+pub use select::{
+    visit_select_chain, visit_select_combinator, visit_select_command, visit_select_item,
+};
 pub use update::visit_update;
 
 use crate::{
@@ -152,7 +154,10 @@ impl CommandType {
     }
 }
 
-pub fn visit_command_type<'a>(visit: &mut (impl Visit<'a> + ?Sized), command_type: &'a CommandType) {
+pub fn visit_command_type<'a>(
+    visit: &mut (impl Visit<'a> + ?Sized),
+    command_type: &'a CommandType,
+) {
     match command_type {
         CommandType::Delete(inner) => visit.visit_delete(inner),
         CommandType::Insert(inner) => visit.visit_insert(inner),

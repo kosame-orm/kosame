@@ -36,7 +36,10 @@ impl TargetTable {
     }
 }
 
-pub fn visit_target_table<'a>(visit: &mut (impl Visit<'a> + ?Sized), target_table: &'a TargetTable) {
+pub fn visit_target_table<'a>(
+    visit: &mut (impl Visit<'a> + ?Sized),
+    target_table: &'a TargetTable,
+) {
     visit.visit_table_path(&target_table.table);
 }
 

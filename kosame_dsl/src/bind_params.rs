@@ -12,7 +12,7 @@ struct BindParamsBuilder<'a> {
     params: Vec<&'a Ident>,
 }
 
-impl<'a> BindParamsBuilder<'a> {
+impl BindParamsBuilder<'_> {
     fn new() -> Self {
         Self { params: Vec::new() }
     }
@@ -31,7 +31,7 @@ pub struct BindParams<'a> {
     params: Vec<&'a Ident>,
 }
 
-impl<'a> BindParams<'a> {
+impl BindParams<'_> {
     #[must_use]
     pub fn is_empty(&self) -> bool {
         self.params.is_empty()

@@ -30,7 +30,6 @@ pub struct Node {
 }
 
 impl Node {
-
     pub fn to_row_tokens(
         &self,
         tokens: &mut TokenStream,

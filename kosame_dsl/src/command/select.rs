@@ -105,7 +105,10 @@ impl SelectChain {
     }
 }
 
-pub fn visit_select_chain<'a>(visit: &mut (impl Visit<'a> + ?Sized), select_chain: &'a SelectChain) {
+pub fn visit_select_chain<'a>(
+    visit: &mut (impl Visit<'a> + ?Sized),
+    select_chain: &'a SelectChain,
+) {
     visit.visit_select_item(&select_chain.start);
     for combinator in &select_chain.combinators {
         visit.visit_select_combinator(combinator);
@@ -200,7 +203,10 @@ pub struct SelectCombinator {
     pub right: SelectItem,
 }
 
-pub fn visit_select_combinator<'a>(visit: &mut (impl Visit<'a> + ?Sized), select_combinator: &'a SelectCombinator) {
+pub fn visit_select_combinator<'a>(
+    visit: &mut (impl Visit<'a> + ?Sized),
+    select_combinator: &'a SelectCombinator,
+) {
     visit.visit_select_item(&select_combinator.right);
 }
 

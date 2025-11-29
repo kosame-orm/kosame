@@ -400,7 +400,10 @@ impl FromCombinator {
     }
 }
 
-pub fn visit_from_combinator<'a>(visit: &mut (impl Visit<'a> + ?Sized), from_combinator: &'a FromCombinator) {
+pub fn visit_from_combinator<'a>(
+    visit: &mut (impl Visit<'a> + ?Sized),
+    from_combinator: &'a FromCombinator,
+) {
     match from_combinator {
         FromCombinator::Join { right, on, .. } => {
             visit.visit_from_item(right);

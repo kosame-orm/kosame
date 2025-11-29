@@ -6,7 +6,7 @@ use syn::Ident;
 
 use crate::{
     clause::{FromChain, FromItem, With},
-    command::{Command, SelectChain, SelectItem},
+    command::{Command, SelectChain},
     correlations::CorrelationId,
     inferred_type::InferredType,
     part::TargetTable,
